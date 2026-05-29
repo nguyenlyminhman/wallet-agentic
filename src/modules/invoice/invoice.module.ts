@@ -4,6 +4,7 @@ import { InvoiceService } from './invoice.service';
 import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+import { PdfOcrService } from './pdf-ocr.service';
 
 @Module({
   imports: [
@@ -32,6 +33,6 @@ import { extname } from 'path';
     }),
   ],
   controllers: [InvoiceController],
-  providers: [InvoiceService]
+  providers: [InvoiceService, PdfOcrService]
 })
 export class InvoiceModule { }
