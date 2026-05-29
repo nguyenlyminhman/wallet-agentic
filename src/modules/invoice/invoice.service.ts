@@ -1,29 +1,34 @@
-import { Injectable, Logger  } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PDFParse } from 'pdf-parse';
+import { fromBuffer } from 'pdf2pic';
+import Tesseract from 'tesseract.js';
 
 import * as fs from 'fs';
+import { PdfOcrService } from './pdf-ocr.service';
 
 @Injectable()
 export class InvoiceService {
     private readonly logger = new Logger(InvoiceService.name);
 
-    constructor() {}
+    constructor(
+        private readonly pdfOcrService: PdfOcrService
+    ) { }
 
     async processInvoice(pdfPath: string) {
 
-    // Đọc PDF text trước khi đẩy vào agent
-    const rawText = await this.extractTextFromPdf(pdfPath);
-    console.log('rawText', rawText);
-    
-    // Cleanup file sau khi xử lý xong
-    fs.unlink(pdfPath, (err) => {
-      if (err) this.logger.warn(`Could not delete temp file: ${pdfPath}`);
-    });
+        // Đọc PDF text trước khi đẩy vào agent
+        const rawText = await this.extractTextFromPdf(pdfPath);
+        console.log('rawText', rawText);
+
+        // Cleanup file sau khi xử lý xong
+        fs.unlink(pdfPath, (err) => {
+            if (err) this.logger.warn(`Could not delete temp file: ${pdfPath}`);
+        });
 
     
     return rawText;
 
-  }
+    }
 
   private async extractTextFromPdf(pdfPath: string): Promise<string> {
     try {
