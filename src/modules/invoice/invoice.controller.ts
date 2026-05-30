@@ -20,9 +20,10 @@ export class InvoiceController {
 
         try {
             console.log('file path: ', file.path)
-            await this.invoiceService.processInvoice(file.path);
+            await this.invoiceService.processUploadedInvoice(file);
 
-        } catch (error) {
+        } catch (error: any) {
+            console.log(error.message)
             throw new BadRequestException('Invalid JSON file');
         }
 
