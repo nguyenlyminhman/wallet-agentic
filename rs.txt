@@ -1,0 +1,252 @@
+file path:  uploads/invoices/2026-05-30-23-32-06-166.pdf
+createCheckQualityTool output:  ```json
+{
+  "qualities": [
+    "CLEAR"
+  ],
+  "confidence": 100,
+  "details": "Ảnh hóa đơn là file kỹ thuật số chất lượng cao, văn bản rõ nét, không có dấu hiệu mờ, nhòe hay hư hỏng vật lý.",
+  "readability": "HIGH"
+}
+```
+createValidateAmountsTool {"isValid":false,"errors":["[UNKNOWN] Dòng undefined: 1 × 25,000,000 = NaN, hóa đơn ghi 25,000,000","[UNKNOWN] Dòng undefined: 1 × 8,000,000 = NaN, hóa đơn ghi 8,000,000","[UNKNOWN] Dòng undefined: 2 × 3,500,000 = NaN, hóa đơn ghi 7,000,000","[UNKNOWN] Dòng undefined: 1 × 6,000,000 = NaN, hóa đơn ghi 6,000,000"],"itemChecks":[{"expected":null,"actual":"25,000,000","isValid":false},{"expected":null,"actual":"8,000,000","isValid":false},{"expected":null,"actual":"7,000,000","isValid":false},{"expected":null,"actual":"6,000,000","isValid":false}],"calculatedSubtotal":46,"calculatedVat":4,"calculatedTotal":50,"currency":"UNKNOWN","tolerance":2}
+createValidateAmountsTool {"isValid":true,"errors":[],"itemChecks":[{"expected":25000000,"actual":25000000,"isValid":true},{"expected":8000000,"actual":8000000,"isValid":true},{"expected":7000000,"actual":7000000,"isValid":true},{"expected":6000000,"actual":6000000,"isValid":true}],"calculatedSubtotal":46000000,"calculatedVat":4600000,"calculatedTotal":50600000,"currency":"UNKNOWN","tolerance":2}
+createDetectFraudTool:  {
+  countryCode: 'UNKNOWN',
+  countryName: 'Unknown',
+  hasFraud: false,
+  fraudFlags: [],
+  amountMismatch: false,
+  rulesApplied: {
+    suspiciousRoundThreshold: 1000,
+    workingDayCheck: false,
+    unitPriceDriftPct: 5,
+    taxIdValidation: false,
+    amountInWordsCheck: false,
+    visionManipulationCheck: true
+  }
+}
+buildResultFromMessages {
+  imageQuality: [ 'CLEAR' ],
+  status: 'VALID',
+  fraudFlags: [],
+  agentReasoning: 'Bạn là hệ thống kiểm tra hóa đơn tự động. Với mỗi hóa đơn được upload:\n' +
+    '\n' +
+    'LUÔN thực hiện theo thứ tự:\n' +
+    '1. Gọi checkImageQuality để kiểm tra chất lượng ảnh\n' +
+    '2. Gọi extractInvoice để đọc tất cả thông tin (truyền readability từ bước 1)\n' +
+    '3. Gọi validateAmounts để kiểm tra tổng tiền\n' +
+    '4. Gọi detectFraud để kiểm tra gian lận\n' +
+    '5. Nếu validateAmounts trả về isValid=false → gọi sendNotification type=AMOUNT_MISMATCH\n' +
+    '6. Nếu detectFraud trả về hasFraud=true → gọi sendNotification type=SUSPECTED_FRAUD\n' +
+    '7. Nếu chất lượng ảnh LOW → gọi sendNotification type=LOW_QUALITY\n' +
+    '8. Tổng hợp và trả về kết quả cuối dạng JSON InvoiceResultDto\n' +
+    '\n' +
+    'Không bỏ qua bất kỳ bước nào.\n' +
+    '---\n' +
+    '[object Object],[object Object]\n' +
+    '---\n' +
+    '[object Object]\n' +
+    '---\n' +
+    '```json\n' +
+    '{\n' +
+    '  "qualities": [\n' +
+    '    "CLEAR"\n' +
+    '  ],\n' +
+    '  "confidence": 100,\n' +
+    '  "details": "Ảnh hóa đơn là file kỹ thuật số chất lượng cao, văn bản rõ nét, không có dấu hiệu mờ, nhòe hay hư hỏng vật lý.",\n' +
+    '  "readability": "HIGH"\n' +
+    '}\n' +
+    '```\n' +
+    '---\n' +
+    '[object Object]\n' +
+    '---\n' +
+    '```json\n' +
+    '{\n' +
+    '  "invoiceNo": "INV-2024-00147",\n' +
+    '  "invoiceDate": "March 15, 2024",\n' +
+    '  "dueDate": "April 14, 2024",\n' +
+    '  "seller": {\n' +
+    '    "name": "ABC TECHNOLOGY SOLUTIONS CO., LTD.",\n' +
+    '    "taxId": "0312345678",\n' +
+    '    "address": "123 Nguyen Hue Street, District 1, Ho Chi Minh City",\n' +
+    '    "email": "accounting@abc-tech.vn",\n' +
+    '    "phone": "+84 28 3822 1234"\n' +
+    '  },\n' +
+    '  "buyer": {\n' +
+    '    "name": "XYZ Trading Joint Stock Company",\n' +
+    '    "taxId": "0301234567",\n' +
+    '    "address": "456 Le Loi Street, District 3, Ho Chi Minh City"\n' +
+    '  },\n' +
+    '  "items": [\n' +
+    '    {\n' +
+    '      "no": 1,\n' +
+    '      "description": "Warehouse Management Software (Import/Export Module)",\n' +
+    '      "unit": "Package",\n' +
+    '      "qty": 1,\n' +
+    '      "unitPrice": "25,000,000",\n' +
+    '      "amount": "25,000,000"\n' +
+    '    },\n' +
+    '    {\n' +
+    '      "no": 2,\n' +
+    '      "description": "System Installation & Deployment at 3 Branch Offices",\n' +
+    '      "unit": "Time",\n' +
+    '      "qty": 1,\n' +
+    '      "unitPrice": "8,000,000",\n' +
+    '      "amount": "8,000,000"\n' +
+    '    },\n' +
+    '    {\n' +
+    '      "no": 3,\n' +
+    '      "description": "Staff Training & Onboarding (2 days x 10 persons)",\n' +
+    '      "unit": "Day",\n' +
+    '      "qty": 2,\n' +
+    '      "unitPrice": "3,500,000",\n' +
+    '      "amount": "7,000,000"\n' +
+    '    },\n' +
+    '    {\n' +
+    '      "no": 4,\n' +
+    '      "description": "Annual Maintenance & Technical Support (12-Month Package)",\n' +
+    '      "unit": "Year",\n' +
+    '      "qty": 1,\n' +
+    '      "unitPrice": "6,000,000",\n' +
+    '      "amount": "6,000,000"\n' +
+    '    }\n' +
+    '  ],\n' +
+    '  "subtotal": "46.000.000",\n' +
+    '  "vatRate": 10,\n' +
+    '  "vat": "4.600.000",\n' +
+    '  "totalDue": "50.600.000",\n' +
+    '  "amountInWords": "Fifty million six hundred thousand Vietnamese Dong only",\n' +
+    '  "bankAccount": {\n' +
+    '    "bank": "Vietcombank - Ho Chi Minh City Branch",\n' +
+    '    "accountNo": "0071002345678",\n' +
+    '    "accountName": "ABC TECHNOLOGY SOLUTIONS CO., LTD."\n' +
+    '  },\n' +
+    '  "uncertainFields": []\n' +
+    '}\n' +
+    '```\n' +
+    '---\n' +
+    '[object Object]\n' +
+    '---\n' +
+    '{"isValid":false,"errors":["[UNKNOWN] Dòng undefined: 1 × 25,000,000 = NaN, hóa đơn ghi 25,000,000","[UNKNOWN] Dòng undefined: 1 × 8,000,000 = NaN, hóa đơn ghi 8,000,000","[UNKNOWN] Dòng undefined: 2 × 3,500,000 = NaN, hóa đơn ghi 7,000,000","[UNKNOWN] Dòng undefined: 1 × 6,000,000 = NaN, hóa đơn ghi 6,000,000"],"itemChecks":[{"expected":null,"actual":"25,000,000","isValid":false},{"expected":null,"actual":"8,000,000","isValid":false},{"expected":null,"actual":"7,000,000","isValid":false},{"expected":null,"actual":"6,000,000","isValid":false}],"calculatedSubtotal":46,"calculatedVat":4,"calculatedTotal":50,"currency":"UNKNOWN","tolerance":2}\n' +
+    '---\n' +
+    '[object Object]\n' +
+    '---\n' +
+    '{"isValid":true,"errors":[],"itemChecks":[{"expected":25000000,"actual":25000000,"isValid":true},{"expected":8000000,"actual":8000000,"isValid":true},{"expected":7000000,"actual":7000000,"isValid":true},{"expected":6000000,"actual":6000000,"isValid":true}],"calculatedSubtotal":46000000,"calculatedVat":4600000,"calculatedTotal":50600000,"currency":"UNKNOWN","tolerance":2}\n' +
+    '---\n' +
+    '[object Object]\n' +
+    '---\n' +
+    '{"countryCode":"UNKNOWN","countryName":"Unknown","hasFraud":false,"fraudFlags":[],"amountMismatch":false,"rulesApplied":{"suspiciousRoundThreshold":1000,"workingDayCheck":false,"unitPriceDriftPct":5,"taxIdValidation":false,"amountInWordsCheck":false,"visionManipulationCheck":true}}\n' +
+    '---\n' +
+    '```json\n' +
+    '{\n' +
+    '  "invoiceId": "INV-2024-00147",\n' +
+    '  "status": "PROCESSED_SUCCESS",\n' +
+    '  "summary": {\n' +
+    '    "seller": "ABC TECHNOLOGY SOLUTIONS CO., LTD.",\n' +
+    '    "buyer": "XYZ Trading Joint Stock Company",\n' +
+    '    "totalAmount": 50600000,\n' +
+    '    "currency": "VND",\n' +
+    '    "invoiceDate": "2024-03-15"\n' +
+    '  },\n' +
+    '  "steps": [\n' +
+    '    {\n' +
+    '      "stepName": "checkImageQuality",\n' +
+    '      "status": "SUCCESS",\n' +
+    '      "result": {\n' +
+    '        "readability": "HIGH",\n' +
+    '        "details": "Ảnh hóa đơn là file kỹ thuật số chất lượng cao, văn bản rõ nét, không có dấu hiệu mờ, nhòe hay hư hỏng vật lý."\n' +
+    '      }\n' +
+    '    },\n' +
+    '    {\n' +
+    '      "stepName": "extractInvoice",\n' +
+    '      "status": "SUCCESS",\n' +
+    '      "result": {\n' +
+    '        "invoiceNo": "INV-2024-00147",\n' +
+    '        "invoiceDate": "March 15, 2024",\n' +
+    '        "dueDate": "April 14, 2024",\n' +
+    '        "seller": {\n' +
+    '          "name": "ABC TECHNOLOGY SOLUTIONS CO., LTD.",\n' +
+    '          "taxId": "0312345678",\n' +
+    '          "address": "123 Nguyen Hue Street, District 1, Ho Chi Minh City",\n' +
+    '          "email": "accounting@abc-tech.vn",\n' +
+    '          "phone": "+84 28 3822 1234"\n' +
+    '        },\n' +
+    '        "buyer": {\n' +
+    '          "name": "XYZ Trading Joint Stock Company",\n' +
+    '          "taxId": "0301234567",\n' +
+    '          "address": "456 Le Loi Street, District 3, Ho Chi Minh City"\n' +
+    '        },\n' +
+    '        "items": [\n' +
+    '          {\n' +
+    '            "no": 1,\n' +
+    '            "description": "Warehouse Management Software (Import/Export Module)",\n' +
+    '            "unit": "Package",\n' +
+    '            "qty": 1,\n' +
+    '            "unitPrice": "25,000,000",\n' +
+    '            "amount": "25,000,000"\n' +
+    '          },\n' +
+    '          {\n' +
+    '            "no": 2,\n' +
+    '            "description": "System Installation & Deployment at 3 Branch Offices",\n' +
+    '            "unit": "Time",\n' +
+    '            "qty": 1,\n' +
+    '            "unitPrice": "8,000,000",\n' +
+    '            "amount": "8,000,000"\n' +
+    '          },\n' +
+    '          {\n' +
+    '            "no": 3,\n' +
+    '            "description": "Staff Training & Onboarding (2 days x 10 persons)",\n' +
+    '            "unit": "Day",\n' +
+    '            "qty": 2,\n' +
+    '            "unitPrice": "3,500,000",\n' +
+    '            "amount": "7,000,000"\n' +
+    '          },\n' +
+    '          {\n' +
+    '            "no": 4,\n' +
+    '            "description": "Annual Maintenance & Technical Support (12-Month Package)",\n' +
+    '            "unit": "Year",\n' +
+    '            "qty": 1,\n' +
+    '            "unitPrice": "6,000,000",\n' +
+    '            "amount": "6,000,000"\n' +
+    '          }\n' +
+    '        ],\n' +
+    '        "subtotal": "46.000.000",\n' +
+    '        "vatRate": 10,\n' +
+    '        "vat": "4.600.000",\n' +
+    '        "totalDue": "50.600.000",\n' +
+    '        "amountInWords": "Fifty million six hundred thousand Vietnamese Dong only",\n' +
+    '        "bankAccount": {\n' +
+    '          "bank": "Vietcombank - Ho Chi Minh City Branch",\n' +
+    '          "accountNo": "0071002345678",\n' +
+    '          "accountName": "ABC TECHNOLOGY SOLUTIONS CO., LTD."\n' +
+    '        }\n' +
+    '      }\n' +
+    '    },\n' +
+    '    {\n' +
+    '      "stepName": "validateAmounts",\n' +
+    '      "status": "SUCCESS",\n' +
+    '      "result": {\n' +
+    '        "isValid": true,\n' +
+    '        "calculatedSubtotal": 46000000,\n' +
+    '        "calculatedVat": 4600000,\n' +
+    '        "calculatedTotal": 50600000\n' +
+    '      }\n' +
+    '    },\n' +
+    '    {\n' +
+    '      "stepName": "detectFraud",\n' +
+    '      "status": "SUCCESS",\n' +
+    '      "result": {\n' +
+    '        "hasFraud": false,\n' +
+    '        "fraudFlags": []\n' +
+    '      }\n' +
+    '    },\n' +
+    '    {\n' +
+    '      "stepName": "sendNotification",\n' +
+    '      "status": "SKIPPED",\n' +
+    '      "details": "Không có điều kiện nào cần gửi thông báo."\n' +
+    '    }\n' +
+    '  ]\n' +
+    '}\n' +
+    '```'
+}

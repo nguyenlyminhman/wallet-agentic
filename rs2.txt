@@ -1,0 +1,337 @@
+file path:  uploads/invoices/2026-05-30-23-52-29-202.pdf
+ 
+
+ createCheckQualityTool output: ```json
+{
+  "qualities": [
+    "CLEAR"
+  ],
+  "confidence": 100,
+  "details": "Ảnh hóa đơn là file kỹ thuật số chất lượng cao, văn bản rõ nét, không có dấu hiệu mờ, nhòe hay hư hỏng vật lý.",
+  "readability": "HIGH"
+}
+```
+
+
+ createValidateAmountsTool: 
+ {
+  isValid: false,
+  errors: [
+    '[UNKNOWN] Dòng 1: 1 × 25,000,000 = NaN, hóa đơn ghi 25,000,000',
+    '[UNKNOWN] Dòng 2: 1 × 8,000,000 = NaN, hóa đơn ghi 8,000,000',
+    '[UNKNOWN] Dòng 3: 2 × 3,500,000 = NaN, hóa đơn ghi 7,000,000',
+    '[UNKNOWN] Dòng 4: 1 × 6,000,000 = NaN, hóa đơn ghi 6,000,000'
+  ],
+  itemChecks: [
+    {
+      no: 1,
+      description: 'Warehouse Management Software (Import/Export Module)',
+      expected: NaN,
+      actual: '25,000,000',
+      isValid: false
+    },
+    {
+      no: 2,
+      description: 'System Installation & Deployment at 3 Branch Offices',
+      expected: NaN,
+      actual: '8,000,000',
+      isValid: false
+    },
+    {
+      no: 3,
+      description: 'Staff Training & Onboarding (2 days x 10 persons)',
+      expected: NaN,
+      actual: '7,000,000',
+      isValid: false
+    },
+    {
+      no: 4,
+      description: 'Annual Maintenance & Technical Support (12-Month Package)',
+      expected: NaN,
+      actual: '6,000,000',
+      isValid: false
+    }
+  ],
+  calculatedSubtotal: 46,
+  calculatedVat: 4,
+  calculatedTotal: 50,
+  currency: 'UNKNOWN',
+  tolerance: 2
+}
+
+
+ createDetectFraudTool: 
+ {
+  countryCode: 'UNKNOWN',
+  countryName: 'Unknown',
+  hasFraud: false,
+  fraudFlags: [],
+  amountMismatch: true,
+  rulesApplied: {
+    suspiciousRoundThreshold: 1000,
+    workingDayCheck: false,
+    unitPriceDriftPct: 5,
+    taxIdValidation: false,
+    amountInWordsCheck: true,
+    visionManipulationCheck: true
+  }
+}
+[Nest] 150776  - 05/30/2026, 11:54:24 PM    WARN [NotificationService] [INVOICE ALERT] ⚠️ Sai thông tin tiền - Cần kiểm tra lại - Invoice: INV-2024-00147
+
+
+ createSendNotificationTool: 
+ { sent: true, type: 'AMOUNT_MISMATCH', invoiceNo: 'INV-2024-00147' }
+buildResultFromMessages {
+  imageQuality: [ 'CLEAR' ],
+  status: 'AMOUNT_MISMATCH',
+  fraudFlags: [],
+  agentReasoning: 'Bạn là hệ thống kiểm tra hóa đơn tự động. Với mỗi hóa đơn được upload:\n' +
+    '\n' +
+    'LUÔN thực hiện theo thứ tự:\n' +
+    '1. Gọi checkImageQuality để kiểm tra chất lượng ảnh\n' +
+    '2. Gọi extractInvoice để đọc tất cả thông tin (truyền readability từ bước 1)\n' +
+    '3. Gọi validateAmounts để kiểm tra tổng tiền\n' +
+    '4. Gọi detectFraud để kiểm tra gian lận\n' +
+    '5. Nếu validateAmounts trả về isValid=false → gọi sendNotification type=AMOUNT_MISMATCH\n' +
+    '6. Nếu detectFraud trả về hasFraud=true → gọi sendNotification type=SUSPECTED_FRAUD\n' +
+    '7. Nếu chất lượng ảnh LOW → gọi sendNotification type=LOW_QUALITY\n' +
+    '8. Tổng hợp và trả về kết quả cuối dạng JSON InvoiceResultDto\n' +
+    '\n' +
+    'Không bỏ qua bất kỳ bước nào.\n' +
+    '---\n' +
+    '[object Object],[object Object]\n' +
+    '---\n' +
+    '[object Object]\n' +
+    '---\n' +
+    '```json\n' +
+    '{\n' +
+    '  "qualities": [\n' +
+    '    "CLEAR"\n' +
+    '  ],\n' +
+    '  "confidence": 100,\n' +
+    '  "details": "Ảnh hóa đơn là file kỹ thuật số chất lượng cao, văn bản rõ nét, không có dấu hiệu mờ, nhòe hay hư hỏng vật lý.",\n' +
+    '  "readability": "HIGH"\n' +
+    '}\n' +
+    '```\n' +
+    '---\n' +
+    '[object Object]\n' +
+    '---\n' +
+    '```json\n' +
+    '{\n' +
+    '  "invoiceNo": "INV-2024-00147",\n' +
+    '  "invoiceDate": "2024-03-15",\n' +
+    '  "dueDate": "2024-04-14",\n' +
+    '  "seller": {\n' +
+    '    "name": "ABC TECHNOLOGY SOLUTIONS CO., LTD.",\n' +
+    '    "taxId": "0312345678",\n' +
+    '    "address": "123 Nguyen Hue Street, District 1, Ho Chi Minh City",\n' +
+    '    "email": "accounting@abc-tech.vn",\n' +
+    '    "phone": "+84 28 3822 1234"\n' +
+    '  },\n' +
+    '  "buyer": {\n' +
+    '    "name": "XYZ Trading Joint Stock Company",\n' +
+    '    "taxId": "0301234567",\n' +
+    '    "address": "456 Le Loi Street, District 3, Ho Chi Minh City"\n' +
+    '  },\n' +
+    '  "items": [\n' +
+    '    {\n' +
+    '      "no": 1,\n' +
+    '      "description": "Warehouse Management Software (Import/Export Module)",\n' +
+    '      "unit": "Package",\n' +
+    '      "qty": 1,\n' +
+    '      "unitPrice": "25,000,000",\n' +
+    '      "amount": "25,000,000"\n' +
+    '    },\n' +
+    '    {\n' +
+    '      "no": 2,\n' +
+    '      "description": "System Installation & Deployment at 3 Branch Offices",\n' +
+    '      "unit": "Time",\n' +
+    '      "qty": 1,\n' +
+    '      "unitPrice": "8,000,000",\n' +
+    '      "amount": "8,000,000"\n' +
+    '    },\n' +
+    '    {\n' +
+    '      "no": 3,\n' +
+    '      "description": "Staff Training & Onboarding (2 days x 10 persons)",\n' +
+    '      "unit": "Day",\n' +
+    '      "qty": 2,\n' +
+    '      "unitPrice": "3,500,000",\n' +
+    '      "amount": "7,000,000"\n' +
+    '    },\n' +
+    '    {\n' +
+    '      "no": 4,\n' +
+    '      "description": "Annual Maintenance & Technical Support (12-Month Package)",\n' +
+    '      "unit": "Year",\n' +
+    '      "qty": 1,\n' +
+    '      "unitPrice": "6,000,000",\n' +
+    '      "amount": "6,000,000"\n' +
+    '    }\n' +
+    '  ],\n' +
+    '  "subtotal": "46.000.000",\n' +
+    '  "vatRate": 10,\n' +
+    '  "vat": "4.600.000",\n' +
+    '  "totalDue": "50.600.000",\n' +
+    '  "amountInWords": "Fifty million six hundred thousand Vietnamese Dong only",\n' +
+    '  "bankAccount": {\n' +
+    '    "bank": "Vietcombank - Ho Chi Minh City Branch",\n' +
+    '    "accountNo": "0071002345678",\n' +
+    '    "accountName": "ABC TECHNOLOGY SOLUTIONS CO., LTD."\n' +
+    '  },\n' +
+    '  "uncertainFields": []\n' +
+    '}\n' +
+    '```\n' +
+    '---\n' +
+    '[object Object]\n' +
+    '---\n' +
+    '{"isValid":false,"errors":["[UNKNOWN] Dòng 1: 1 × 25,000,000 = NaN, hóa đơn ghi 25,000,000","[UNKNOWN] Dòng 2: 1 × 8,000,000 = NaN, hóa đơn ghi 8,000,000","[UNKNOWN] Dòng 3: 2 × 3,500,000 = NaN, hóa đơn ghi 7,000,000","[UNKNOWN] Dòng 4: 1 × 6,000,000 = NaN, hóa đơn ghi 6,000,000"],"itemChecks":[{"no":1,"description":"Warehouse Management Software (Import/Export Module)","expected":null,"actual":"25,000,000","isValid":false},{"no":2,"description":"System Installation & Deployment at 3 Branch Offices","expected":null,"actual":"8,000,000","isValid":false},{"no":3,"description":"Staff Training & Onboarding (2 days x 10 persons)","expected":null,"actual":"7,000,000","isValid":false},{"no":4,"description":"Annual Maintenance & Technical Support (12-Month Package)","expected":null,"actual":"6,000,000","isValid":false}],"calculatedSubtotal":46,"calculatedVat":4,"calculatedTotal":50,"currency":"UNKNOWN","tolerance":2}\n' +
+    '---\n' +
+    '[object Object]\n' +
+    '---\n' +
+    '{"countryCode":"UNKNOWN","countryName":"Unknown","hasFraud":false,"fraudFlags":[],"amountMismatch":true,"rulesApplied":{"suspiciousRoundThreshold":1000,"workingDayCheck":false,"unitPriceDriftPct":5,"taxIdValidation":false,"amountInWordsCheck":true,"visionManipulationCheck":true}}\n' +
+    '---\n' +
+    '[object Object]\n' +
+    '---\n' +
+    '{"sent":true,"type":"AMOUNT_MISMATCH","invoiceNo":"INV-2024-00147"}\n' +
+    '---\n' +
+    '```json\n' +
+    '{\n' +
+    '  "status": "PROCESSED_WITH_ERROR",\n' +
+    '  "imageQuality": {\n' +
+    '    "qualities": [\n' +
+    '      "CLEAR"\n' +
+    '    ],\n' +
+    '    "confidence": 100,\n' +
+    '    "details": "Ảnh hóa đơn là file kỹ thuật số chất lượng cao, văn bản rõ nét, không có dấu hiệu mờ, nhòe hay hư hỏng vật lý.",\n' +
+    '    "readability": "HIGH"\n' +
+    '  },\n' +
+    '  "invoiceData": {\n' +
+    '    "invoiceNo": "INV-2024-00147",\n' +
+    '    "invoiceDate": "2024-03-15",\n' +
+    '    "dueDate": "2024-04-14",\n' +
+    '    "seller": {\n' +
+    '      "name": "ABC TECHNOLOGY SOLUTIONS CO., LTD.",\n' +
+    '      "taxId": "0312345678",\n' +
+    '      "address": "123 Nguyen Hue Street, District 1, Ho Chi Minh City",\n' +
+    '      "email": "accounting@abc-tech.vn",\n' +
+    '      "phone": "+84 28 3822 1234"\n' +
+    '    },\n' +
+    '    "buyer": {\n' +
+    '      "name": "XYZ Trading Joint Stock Company",\n' +
+    '      "taxId": "0301234567",\n' +
+    '      "address": "456 Le Loi Street, District 3, Ho Chi Minh City"\n' +
+    '    },\n' +
+    '    "items": [\n' +
+    '      {\n' +
+    '        "no": 1,\n' +
+    '        "description": "Warehouse Management Software (Import/Export Module)",\n' +
+    '        "unit": "Package",\n' +
+    '        "qty": 1,\n' +
+    '        "unitPrice": "25,000,000",\n' +
+    '        "amount": "25,000,000"\n' +
+    '      },\n' +
+    '      {\n' +
+    '        "no": 2,\n' +
+    '        "description": "System Installation & Deployment at 3 Branch Offices",\n' +
+    '        "unit": "Time",\n' +
+    '        "qty": 1,\n' +
+    '        "unitPrice": "8,000,000",\n' +
+    '        "amount": "8,000,000"\n' +
+    '      },\n' +
+    '      {\n' +
+    '        "no": 3,\n' +
+    '        "description": "Staff Training & Onboarding (2 days x 10 persons)",\n' +
+    '        "unit": "Day",\n' +
+    '        "qty": 2,\n' +
+    '        "unitPrice": "3,500,000",\n' +
+    '        "amount": "7,000,000"\n' +
+    '      },\n' +
+    '      {\n' +
+    '        "no": 4,\n' +
+    '        "description": "Annual Maintenance & Technical Support (12-Month Package)",\n' +
+    '        "unit": "Year",\n' +
+    '        "qty": 1,\n' +
+    '        "unitPrice": "6,000,000",\n' +
+    '        "amount": "6,000,000"\n' +
+    '      }\n' +
+    '    ],\n' +
+    '    "subtotal": "46.000.000",\n' +
+    '    "vatRate": 10,\n' +
+    '    "vat": "4.600.000",\n' +
+    '    "totalDue": "50.600.000",\n' +
+    '    "amountInWords": "Fifty million six hundred thousand Vietnamese Dong only",\n' +
+    '    "bankAccount": {\n' +
+    '      "bank": "Vietcombank - Ho Chi Minh City Branch",\n' +
+    '      "accountNo": "0071002345678",\n' +
+    '      "accountName": "ABC TECHNOLOGY SOLUTIONS CO., LTD."\n' +
+    '    },\n' +
+    '    "uncertainFields": []\n' +
+    '  },\n' +
+    '  "validationResult": {\n' +
+    '    "isValid": false,\n' +
+    '    "errors": [\n' +
+    '      "[UNKNOWN] Dòng 1: 1 × 25,000,000 = NaN, hóa đơn ghi 25,000,000",\n' +
+    '      "[UNKNOWN] Dòng 2: 1 × 8,000,000 = NaN, hóa đơn ghi 8,000,000",\n' +
+    '      "[UNKNOWN] Dòng 3: 2 × 3,500,000 = NaN, hóa đơn ghi 7,000,000",\n' +
+    '      "[UNKNOWN] Dòng 4: 1 × 6,000,000 = NaN, hóa đơn ghi 6,000,000"\n' +
+    '    ],\n' +
+    '    "itemChecks": [\n' +
+    '      {\n' +
+    '        "no": 1,\n' +
+    '        "description": "Warehouse Management Software (Import/Export Module)",\n' +
+    '        "expected": null,\n' +
+    '        "actual": "25,000,000",\n' +
+    '        "isValid": false\n' +
+    '      },\n' +
+    '      {\n' +
+    '        "no": 2,\n' +
+    '        "description": "System Installation & Deployment at 3 Branch Offices",\n' +
+    '        "expected": null,\n' +
+    '        "actual": "8,000,000",\n' +
+    '        "isValid": false\n' +
+    '      },\n' +
+    '      {\n' +
+    '        "no": 3,\n' +
+    '        "description": "Staff Training & Onboarding (2 days x 10 persons)",\n' +
+    '        "expected": null,\n' +
+    '        "actual": "7,000,000",\n' +
+    '        "isValid": false\n' +
+    '      },\n' +
+    '      {\n' +
+    '        "no": 4,\n' +
+    '        "description": "Annual Maintenance & Technical Support (12-Month Package)",\n' +
+    '        "expected": null,\n' +
+    '        "actual": "6,000,000",\n' +
+    '        "isValid": false\n' +
+    '      }\n' +
+    '    ],\n' +
+    '    "calculatedSubtotal": 46,\n' +
+    '    "calculatedVat": 4,\n' +
+    '    "calculatedTotal": 50,\n' +
+    '    "currency": "UNKNOWN",\n' +
+    '    "tolerance": 2\n' +
+    '  },\n' +
+    '  "fraudResult": {\n' +
+    '    "countryCode": "UNKNOWN",\n' +
+    '    "countryName": "Unknown",\n' +
+    '    "hasFraud": false,\n' +
+    '    "fraudFlags": [],\n' +
+    '    "amountMismatch": true,\n' +
+    '    "rulesApplied": {\n' +
+    '      "suspiciousRoundThreshold": 1000,\n' +
+    '      "workingDayCheck": false,\n' +
+    '      "unitPriceDriftPct": 5,\n' +
+    '      "taxIdValidation": false,\n' +
+    '      "amountInWordsCheck": true,\n' +
+    '      "visionManipulationCheck": true\n' +
+    '    }\n' +
+    '  },\n' +
+    '  "notifications": [\n' +
+    '    {\n' +
+    '      "sent": true,\n' +
+    '      "type": "AMOUNT_MISMATCH",\n' +
+    '      "invoiceNo": "INV-2024-00147"\n' +
+    '    }\n' +
+    '  ]\n' +
+    '}\n' +
+    '```'
+}
