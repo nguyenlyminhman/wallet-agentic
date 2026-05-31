@@ -39,6 +39,63 @@ export function parseAmount(raw: string | number, profile: CountryProfile): numb
   return isNaN(result) ? 0 : result;
 }
 
+export function parsePrice(raw: string | number, profile: CountryProfile): number {
+  if (typeof raw === 'number') return raw;
+  if (!raw) return 0;
+
+  let cleaned = String(raw).trim();
+
+  // Bỏ ký hiệu tiền tệ
+  if (profile?.currencySymbols) {
+    for (const symbol of profile.currencySymbols) {
+      cleaned = cleaned.replace(new RegExp(symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '');
+    }
+  }
+  cleaned = cleaned.trim();
+
+  // Xử lý chuẩn theo từng convention nếu có profile hợp lệ
+  if (profile && profile.thousandSeparator === '.' && profile.decimalSeparator === ',') {
+    // VN, DE, ID: 1.234.567,89 → 1234567.89 hoặc 1.000.000 → 1000000
+    cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+  } else if (profile && profile.thousandSeparator === ',' && profile.decimalSeparator === '.') {
+    // US, JP, KR: 1,234,567.89 → 1234567.89 hoặc 1,000,000 → 1000000
+    cleaned = cleaned.replace(/,/g, '');
+  } else if (profile && profile.thousandSeparator === ' ' && profile.decimalSeparator === ',') {
+    // FR: 1 234 567,89 → 1234567.89
+    cleaned = cleaned.replace(/\s/g, '').replace(',', '.');
+  } else {
+    // 🚀 FALLBACK SMART LOGIC: Tự động đoán định dạng khi thiếu profile
+    // Chỉ giữ lại số, dấu chấm và dấu phẩy
+    cleaned = cleaned.replace(/[^\d.,]/g, '');
+
+    // Tìm dấu phân cách cuối cùng xuất hiện trong chuỗi (chấm hoặc phẩy)
+    const lastSeparatorMatch = cleaned.match(/[.,](?=[^.,]*$)/);
+
+    if (lastSeparatorMatch) {
+      const separator = lastSeparatorMatch[0];
+      const parts = cleaned.split(separator);
+      const lastPart = parts[parts.length - 1];
+
+      // Nếu phần cuối có độ dài khác 3 (ví dụ: .89, ,5 -> hàng thập phân) 
+      // HOẶC nếu trong chuỗi xuất hiện cả 2 loại dấu (ví dụ: 1,234,567.00) thì dấu cuối chắc chắn là thập phân
+      const hasMultipleTypes = cleaned.includes(',') && cleaned.includes('.');
+      
+      if (lastPart.length !== 3 || hasMultipleTypes) {
+        // Loại bỏ tất cả các dấu phân cách hàng nghìn phía trước, chuyển dấu cuối thành dấu chấm thập phân
+        const intermediate = parts.slice(0, -1).join('');
+        cleaned = intermediate.replace(/[.,]/g, '') + '.' + lastPart;
+      } else {
+        // Nếu phần cuối có đúng 3 chữ số (ví dụ: ,000 hoặc .000) và không có dấu nào khác loại
+        // Thì đây là số tròn lớn (1,000,000 hoặc 1.000.000) -> Xóa sạch các dấu phân cách đi
+        cleaned = cleaned.replace(/[.,]/g, '');
+      }
+    }
+  }
+
+  const result = parseFloat(cleaned);
+  return isNaN(result) ? 0 : result;
+}
+
 export function validateTaxId(taxId: string, profile: CountryProfile): boolean {
   if (!profile.taxIdPattern) return true; // UNKNOWN profile - skip
   return profile.taxIdPattern.test(taxId.replace(/\s/g, ''));

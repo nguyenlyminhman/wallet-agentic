@@ -28,8 +28,7 @@ export class InvoiceAgent {
   async processInvoice(imageBase64: string): Promise<InvoiceResultDto> {
     const tools = [
       createCheckQualityTool(this.model, imageBase64),
-      createDetectCountryTool(this.model, imageBase64),       // ← thêm vào
-      createExtractInvoiceTool(this.model, imageBase64),
+      createExtractInvoiceTool(this.model, imageBase64),      
       createValidateAmountsTool(),
       createDetectFraudTool(this.model, imageBase64),
       createSendNotificationTool(this.notificationService),
@@ -42,15 +41,15 @@ export class InvoiceAgent {
 
     const systemPrompt = `Bạn là hệ thống kiểm tra hóa đơn tự động. Với mỗi hóa đơn được upload:
 
-LUÔN thực hiện theo thứ tự:
-1. Gọi checkImageQuality để kiểm tra chất lượng ảnh
-2. Gọi extractInvoice để đọc tất cả thông tin (truyền readability từ bước 1)
-3. Gọi validateAmounts để kiểm tra tổng tiền
-4. Gọi detectFraud để kiểm tra gian lận
-5. Nếu validateAmounts trả về isValid=false → gọi sendNotification type=AMOUNT_MISMATCH
-6. Nếu detectFraud trả về hasFraud=true → gọi sendNotification type=SUSPECTED_FRAUD
-7. Nếu chất lượng ảnh LOW → gọi sendNotification type=LOW_QUALITY
-8. Tổng hợp và trả về kết quả cuối dạng JSON InvoiceResultDto
+                    LUÔN thực hiện theo đúng thứ tự sau:
+                    1. Gọi checkImageQuality để kiểm tra chất lượng ảnh.
+                    2. Gọi extractInvoice để tự động nhận diện quốc gia và trích xuất tất cả thông tin hóa đơn (truyền kết quả 'readability' từ bước 1 vào tham số đầu vào của tool).
+                    3. Gọi validateAmounts để kiểm tra tổng tiền dựa trên dữ liệu đã trích xuất.
+                    4. Gọi detectFraud để kiểm tra các dấu hiệu gian lận.
+                    5. Nếu validateAmounts trả về isValid=false → gọi sendNotification với type=AMOUNT_MISMATCH.
+                    6. Nếu detectFraud trả về hasFraud=true → gọi sendNotification với type=SUSPECTED_FRAUD.
+                    7. Nếu chất lượng ảnh ở bước 1 là LOW → gọi sendNotification với type=LOW_QUALITY.
+                    8. Tổng hợp toàn bộ dữ liệu (bao gồm cả thông tin quốc gia hệ thống tự nhận diện được) và trả về kết quả cuối dạng JSON InvoiceResultDto.
 
 Không bỏ qua bất kỳ bước nào.`;
 const cleanBase64 = imageBase64.replace(/\s+/g, '').replace(/^data:image\/\w+;base64,/, '');
@@ -102,6 +101,7 @@ const cleanBase64 = imageBase64.replace(/\s+/g, '').replace(/^data:image\/\w+;ba
     let validation: any = { isValid: true, errors: [] };
     let fraud: any = { hasFraud: false, fraudFlags: [] };
     let quality: any = { qualities: ['CLEAR'] };
+    let countryInfo: any = {};
 
     for (const msg of messages) {
       if (msg.name === 'checkImageQuality') {
@@ -124,10 +124,12 @@ const cleanBase64 = imageBase64.replace(/\s+/g, '').replace(/^data:image\/\w+;ba
 
     console.log('buildResultFromMessages', {
       ...invoiceData,
+      countryCode: countryInfo.countryCode, // ← Đưa thông tin quốc gia vào DTO trả về
+      countryConfidence: countryInfo.confidence,
       imageQuality: quality.qualities as ImageQuality[],
       status,
       fraudFlags: fraud.fraudFlags || [],
-      agentReasoning,
+      // agentReasoning,
     })
 
     return {
@@ -135,7 +137,7 @@ const cleanBase64 = imageBase64.replace(/\s+/g, '').replace(/^data:image\/\w+;ba
       imageQuality: quality.qualities as ImageQuality[],
       status,
       fraudFlags: fraud.fraudFlags || [],
-      agentReasoning,
+      // agentReasoning,
     };
   }
 }

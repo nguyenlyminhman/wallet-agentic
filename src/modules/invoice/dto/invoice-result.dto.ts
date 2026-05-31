@@ -37,7 +37,7 @@ export interface InvoiceResultDto {
   imageQuality: ImageQuality[];  // có thể nhiều vấn đề cùng lúc
   status: InvoiceStatus;
   fraudFlags: string[];          // mô tả cụ thể các dấu hiệu gian lận
-  agentReasoning: string;        // chuỗi suy luận của agent
+  // agentReasoning: string;        // chuỗi suy luận của agent
   countryCode: CountryCode;
   countryName: string;
   countryDetectionConfidence: number;  // 0-100

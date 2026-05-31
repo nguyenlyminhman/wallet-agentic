@@ -36,25 +36,25 @@ export function createDetectCountryTool(model: ChatGoogleGenerativeAI, rawBase64
                 type: 'text',
                 text: `Phân tích hóa đơn này và xác định quốc gia phát hành.
 
-Dấu hiệu nhận biết theo quốc gia để bạn tham khảo:
-${COUNTRY_HINTS}
+                  Dấu hiệu nhận biết theo quốc gia để bạn tham khảo:
+                  ${COUNTRY_HINTS}
 
-Hãy phân tích kỹ các yếu tố sau trên ảnh:
-1. Ngôn ngữ chính xuất hiện trên hóa đơn
-2. Ký hiệu tiền tệ (¥, $, ₩, ₹, ฿, ₱, Rp, RM, đ, €, £, ...)
-3. Từ khóa đặc trưng tiêu đề (발행일, 請求書, Rechnung, FACTURE, INVOICE, RECEIPT, ...)
-4. Định dạng và nhãn của Mã số thuế (Tax ID, MST, UEN, ABN, EIN...)
-5. Định dạng ngày tháng năm (DD/MM/YYYY, YYYY/MM/DD, MM/DD/YYYY...)
+                  Hãy phân tích kỹ các yếu tố sau trên ảnh:
+                  1. Ngôn ngữ chính xuất hiện trên hóa đơn
+                  2. Ký hiệu tiền tệ (¥, $, ₩, ₹, ฿, ₱, Rp, RM, đ, €, £, ...)
+                  3. Từ khóa đặc trưng tiêu đề (발행일, 請求書, Rechnung, FACTURE, INVOICE, RECEIPT, ...)
+                  4. Định dạng và nhãn của Mã số thuế (Tax ID, MST, UEN, ABN, EIN...)
+                  5. Định dạng ngày tháng năm (DD/MM/YYYY, YYYY/MM/DD, MM/DD/YYYY...)
 
-Trả về kết quả dưới dạng JSON theo format bắt buộc sau:
-{
-  "countryCode": "VN" | "US" | "JP" | "CN" | "SG" | "TH" | "KR" | "MY" | "ID" | "PH" | "DE" | "FR" | "GB" | "AU" | "IN" | "UNKNOWN",
-  "confidence": 0-100,
-  "detectedLanguage": "vi" | "en" | "ja" | "zh" | "th" | "ko" | "de" | "fr" | "id" | "ms" | "other",
-  "detectedCurrency": "VND" | "USD" | "JPY" | "EUR" | "GBP" | "SGD" | "THB" | "KRW" | "MYR" | "IDR" | "PHP" | "AUD" | "INR" | "CNY" | "UNKNOWN",
-  "clues": ["lý do phát hiện 1", "lý do phát hiện 2"]
-}
-Chỉ trả về JSON thuần, không bọc trong markdown block, không thêm text giải thích ngoài JSON.`,
+                  Trả về kết quả dưới dạng JSON theo format bắt buộc sau:
+                  {
+                    "countryCode": "VN" | "US" | "JP" | "CN" | "SG" | "TH" | "KR" | "MY" | "ID" | "PH" | "DE" | "FR" | "GB" | "AU" | "IN" | "UNKNOWN",
+                    "confidence": 0-100,
+                    "detectedLanguage": "vi" | "en" | "ja" | "zh" | "th" | "ko" | "de" | "fr" | "id" | "ms" | "other",
+                    "detectedCurrency": "VND" | "USD" | "JPY" | "EUR" | "GBP" | "SGD" | "THB" | "KRW" | "MYR" | "IDR" | "PHP" | "AUD" | "INR" | "CNY" | "UNKNOWN",
+                    "clues": ["lý do phát hiện 1", "lý do phát hiện 2"]
+                  }
+                  Chỉ trả về JSON thuần, không bọc trong markdown block, không thêm text giải thích ngoài JSON.`,
               },
             ],
           },
