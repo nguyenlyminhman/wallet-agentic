@@ -1,0 +1,84 @@
+{
+    "result": {
+        "_detectedCountry": {
+            "countryCode": "VN",
+            "confidence": 100,
+            "detectedLanguage": "en",
+            "detectedCurrency": "VND"
+        },
+        "invoiceNo": "INV-2024-00147",
+        "invoiceDate": "March 15, 2024",
+        "dueDate": "April 14, 2024",
+        "seller": {
+            "name": "ABC TECHNOLOGY SOLUTIONS CO., LTD.",
+            "taxId": "0312345678",
+            "address": "123 Nguyen Hue Street, District 1, Ho Chi Minh City",
+            "email": "accounting@abc-tech.vn",
+            "phone": "+84 28 3822 1234"
+        },
+        "buyer": {
+            "name": "XYZ Trading Joint Stock Company",
+            "taxId": "0301234567",
+            "address": "456 Le Loi Street, District 3, Ho Chi Minh City"
+        },
+        "items": [
+            {
+                "no": 1,
+                "description": "Warehouse Management Software (Import/Export Module)",
+                "unit": "Package",
+                "qty": 1,
+                "unitPrice": 25,
+                "amount": 25
+            },
+            {
+                "no": 2,
+                "description": "System Installation & Deployment at 3 Branch Offices",
+                "unit": "Time",
+                "qty": 1,
+                "unitPrice": 8,
+                "amount": 8
+            },
+            {
+                "no": 3,
+                "description": "Staff Training & Onboarding (2 days x 10 persons)",
+                "unit": "Day",
+                "qty": 2,
+                "unitPrice": 3.5,
+                "amount": 7
+            },
+            {
+                "no": 4,
+                "description": "Annual Maintenance & Technical Support (12-Month Package)",
+                "unit": "Year",
+                "qty": 1,
+                "unitPrice": 6,
+                "amount": 6
+            }
+        ],
+        "subtotal": 46000000,
+        "vatRate": 10,
+        "vat": 4600000,
+        "totalDue": 50600000,
+        "amountInWords": "Fifty million six hundred thousand Vietnamese Dong only",
+        "bankAccount": {
+            "bank": "Vietcombank - Ho Chi Minh City Branch",
+            "accountNo": "0071002345678",
+            "accountName": "ABC TECHNOLOGY SOLUTIONS CO., LTD."
+        },
+        "uncertainFields": [],
+        "_countryCode": "VN",
+        "_countryName": "Việt Nam",
+        "_currency": "VND",
+        "_roundingUnit": 1,
+        "imageQuality": [
+            "CLEAR"
+        ],
+        "status": "SUSPECTED_FRAUD",
+        "fraudFlags": [
+            "[Số tiền đáng ngờ] Tất cả dòng là bội số của 1,000,000 VND"
+        ],
+        "agentReasoning": "Bạn là hệ thống kiểm tra hóa đơn tự động. Với mỗi hóa đơn được upload:\n\n                    LUÔN thực hiện theo đúng thứ tự sau:\n                    1. Gọi checkImageQuality để kiểm tra chất lượng ảnh.\n                    2. Gọi extractInvoice để tự động nhận diện quốc gia và trích xuất tất cả thông tin hóa đơn (truyền kết quả 'readability' từ bước 1 vào tham số đầu vào của tool).\n                    3. Gọi validateAmounts để kiểm tra tổng tiền dựa trên dữ liệu đã trích xuất.\n                    4. Gọi detectFraud để kiểm tra các dấu hiệu gian lận.\n                    5. Nếu validateAmounts trả về isValid=false → gọi sendNotification với type=AMOUNT_MISMATCH.\n                    6. Nếu detectFraud trả về hasFraud=true → gọi sendNotification với type=SUSPECTED_FRAUD.\n                    7. Nếu chất lượng ảnh ở bước 1 là LOW → gọi sendNotification với type=LOW_QUALITY.\n                    8. Tổng hợp toàn bộ dữ liệu (bao gồm cả thông tin quốc gia hệ thống tự nhận diện được) và trả về kết quả cuối dạng JSON InvoiceResultDto.\n\nKhông bỏ qua bất kỳ bước nào.\n---\n[object Object],[object Object]\n---\n[object Object]\n---\n{\n  \"qualities\": [\n    \"CLEAR\"\n  ],\n  \"confidence\": 100,\n  \"details\": \"Hình ảnh rõ nét, chất lượng tốt, tất cả các ký tự đều có thể đọc được.\",\n  \"readability\": \"HIGH\"\n}\n---\n[object Object]\n---\n\n---\n[object Object]\n---\n{\"_detectedCountry\":{\"countryCode\":\"VN\",\"confidence\":100,\"detectedLanguage\":\"en\",\"detectedCurrency\":\"VND\"},\"invoiceNo\":\"INV-2024-00147\",\"invoiceDate\":\"March 15, 2024\",\"dueDate\":\"April 14, 2024\",\"seller\":{\"name\":\"ABC TECHNOLOGY SOLUTIONS CO., LTD.\",\"taxId\":\"0312345678\",\"address\":\"123 Nguyen Hue Street, District 1, Ho Chi Minh City\",\"email\":\"accounting@abc-tech.vn\",\"phone\":\"+84 28 3822 1234\"},\"buyer\":{\"name\":\"XYZ Trading Joint Stock Company\",\"taxId\":\"0301234567\",\"address\":\"456 Le Loi Street, District 3, Ho Chi Minh City\"},\"items\":[{\"no\":1,\"description\":\"Warehouse Management Software (Import/Export Module)\",\"unit\":\"Package\",\"qty\":1,\"unitPrice\":25,\"amount\":25},{\"no\":2,\"description\":\"System Installation & Deployment at 3 Branch Offices\",\"unit\":\"Time\",\"qty\":1,\"unitPrice\":8,\"amount\":8},{\"no\":3,\"description\":\"Staff Training & Onboarding (2 days x 10 persons)\",\"unit\":\"Day\",\"qty\":2,\"unitPrice\":3.5,\"amount\":7},{\"no\":4,\"description\":\"Annual Maintenance & Technical Support (12-Month Package)\",\"unit\":\"Year\",\"qty\":1,\"unitPrice\":6,\"amount\":6}],\"subtotal\":46000000,\"vatRate\":10,\"vat\":4600000,\"totalDue\":50600000,\"amountInWords\":\"Fifty million six hundred thousand Vietnamese Dong only\",\"bankAccount\":{\"bank\":\"Vietcombank - Ho Chi Minh City Branch\",\"accountNo\":\"0071002345678\",\"accountName\":\"ABC TECHNOLOGY SOLUTIONS CO., LTD.\"},\"uncertainFields\":[],\"_countryCode\":\"VN\",\"_countryName\":\"Việt Nam\",\"_currency\":\"VND\",\"_roundingUnit\":1}\n---\n[object Object]\n---\n{\"isValid\":true,\"errors\":[],\"itemChecks\":[{\"no\":1,\"description\":\"Warehouse Management Software (Import/Export Module)\",\"expected\":25000000,\"actual\":25000000,\"isValid\":true},{\"no\":2,\"description\":\"System Installation & Deployment at 3 Branch Offices\",\"expected\":8000000,\"actual\":8000000,\"isValid\":true},{\"no\":3,\"description\":\"Staff Training & Onboarding (2 days x 10 persons)\",\"expected\":7000000,\"actual\":7000000,\"isValid\":true},{\"no\":4,\"description\":\"Annual Maintenance & Technical Support (12-Month Package)\",\"expected\":6000000,\"actual\":6000000,\"isValid\":true}],\"calculatedSubtotal\":46000000,\"calculatedVat\":4600000,\"calculatedTotal\":50600000,\"currency\":\"VND\",\"tolerance\":2}\n---\n[object Object]\n---\n{\"countryCode\":\"VN\",\"countryName\":\"Việt Nam\",\"hasFraud\":true,\"fraudFlags\":[\"[Số tiền đáng ngờ] Tất cả dòng là bội số của 1,000,000 VND\"],\"amountMismatch\":false,\"rulesApplied\":{\"suspiciousRoundThreshold\":1000000,\"workingDayCheck\":true,\"unitPriceDriftPct\":5,\"taxIdValidation\":true,\"amountInWordsCheck\":true,\"visionManipulationCheck\":true}}\n---\n[object Object]\n---\n{\"sent\":true,\"type\":\"SUSPECTED_FRAUD\",\"invoiceNo\":\"INV-2024-00147\"}\n---\n```json\n{\n  \"InvoiceResultDto\": {\n    \"imageQualityResult\": {\n      \"qualities\": [\n        \"CLEAR\"\n      ],\n      \"confidence\": 100,\n      \"details\": \"Hình ảnh rõ nét, chất lượng tốt, tất cả các ký tự đều có thể đọc được.\",\n      \"readability\": \"HIGH\"\n    },\n    \"extractedData\": {\n      \"_detectedCountry\": {\n        \"countryCode\": \"VN\",\n        \"confidence\": 100,\n        \"detectedLanguage\": \"en\",\n        \"detectedCurrency\": \"VND\"\n      },\n      \"invoiceNo\": \"INV-2024-00147\",\n      \"invoiceDate\": \"March 15, 2024\",\n      \"dueDate\": \"April 14, 2024\",\n      \"seller\": {\n        \"name\": \"ABC TECHNOLOGY SOLUTIONS CO., LTD.\",\n        \"taxId\": \"0312345678\",\n        \"address\": \"123 Nguyen Hue Street, District 1, Ho Chi Minh City\",\n        \"email\": \"accounting@abc-tech.vn\",\n        \"phone\": \"+84 28 3822 1234\"\n      },\n      \"buyer\": {\n        \"name\": \"XYZ Trading Joint Stock Company\",\n        \"taxId\": \"0301234567\",\n        \"address\": \"456 Le Loi Street, District 3, Ho Chi Minh City\"\n      },\n      \"items\": [\n        {\n          \"no\": 1,\n          \"description\": \"Warehouse Management Software (Import/Export Module)\",\n          \"unit\": \"Package\",\n          \"qty\": 1,\n          \"unitPrice\": 25000000,\n          \"amount\": 25000000\n        },\n        {\n          \"no\": 2,\n          \"description\": \"System Installation & Deployment at 3 Branch Offices\",\n          \"unit\": \"Time\",\n          \"qty\": 1,\n          \"unitPrice\": 8000000,\n          \"amount\": 8000000\n        },\n        {\n          \"no\": 3,\n          \"description\": \"Staff Training & Onboarding (2 days x 10 persons)\",\n          \"unit\": \"Day\",\n          \"qty\": 2,\n          \"unitPrice\": 3500000,\n          \"amount\": 7000000\n        },\n        {\n          \"no\": 4,\n          \"description\": \"Annual Maintenance & Technical Support (12-Month Package)\",\n          \"unit\": \"Year\",\n          \"qty\": 1,\n          \"unitPrice\": 6000000,\n          \"amount\": 6000000\n        }\n      ],\n      \"subtotal\": 46000000,\n      \"vatRate\": 10,\n      \"vat\": 4600000,\n      \"totalDue\": 50600000,\n      \"amountInWords\": \"Fifty million six hundred thousand Vietnamese Dong only\",\n      \"bankAccount\": {\n        \"bank\": \"Vietcombank - Ho Chi Minh City Branch\",\n        \"accountNo\": \"0071002345678\",\n        \"accountName\": \"ABC TECHNOLOGY SOLUTIONS CO., LTD.\"\n      }\n    },\n    \"validationResult\": {\n      \"isValid\": true,\n      \"errors\": [],\n      \"calculatedSubtotal\": 46000000,\n      \"calculatedVat\": 4600000,\n      \"calculatedTotal\": 50600000\n    },\n    \"fraudResult\": {\n      \"countryCode\": \"VN\",\n      \"countryName\": \"Việt Nam\",\n      \"hasFraud\": true,\n      \"fraudFlags\": [\n        \"[Số tiền đáng ngờ] Tất cả dòng là bội số của 1,000,000 VND\"\n      ]\n    },\n    \"notificationsSent\": [\n      {\n        \"sent\": true,\n        \"type\": \"SUSPECTED_FRAUD\",\n        \"invoiceNo\": \"INV-2024-00147\"\n      }\n    ]\n  }\n}\n```"
+    },
+    "msg": "Success",
+    "status": 200
+}

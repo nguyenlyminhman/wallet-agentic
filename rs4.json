@@ -1,0 +1,237 @@
+file path:  uploads/invoices/2026-05-31-14-04-20-378.pdf
+ 
+
+ createCheckQualityTool output: {
+  "qualities": ["CLEAR"],
+  "confidence": 100,
+  "details": "Image is a clear, high-resolution digital document. All text is perfectly legible.",
+  "readability": "HIGH"
+}
+
+
+ [Gộp Tool] createExtractInvoiceTool thành công: 
+ {
+  detectedCountry: {
+    countryCode: 'VN',
+    confidence: 95,
+    detectedLanguage: 'en',
+    detectedCurrency: 'VND'
+  },
+  invoiceNo: 'INV-2024-00147',
+  invoiceDate: '2024-03-15',
+  dueDate: '2024-04-14',
+  seller: {
+    name: 'ABC TECHNOLOGY SOLUTIONS CO., LTD.',
+    taxId: '0312345678',
+    address: '123 Nguyen Hue Street, District 1, Ho Chi Minh City',
+    email: 'accounting@abc-tech.vn',
+    phone: '+84 28 3822 1234'
+  },
+  buyer: {
+    name: 'XYZ Trading Joint Stock Company',
+    taxId: '0301234567',
+    address: '456 Le Loi Street, District 3, Ho Chi Minh City'
+  },
+  items: [
+    {
+      no: 1,
+      description: 'Warehouse Management Software (Import/Export Module)',
+      unit: 'Package',
+      qty: 1,
+      unitPrice: 25000000,
+      amount: 25000000
+    },
+    {
+      no: 2,
+      description: 'System Installation & Deployment at 3 Branch Offices',
+      unit: 'Time',
+      qty: 1,
+      unitPrice: 8000000,
+      amount: 8000000
+    },
+    {
+      no: 3,
+      description: 'Staff Training & Onboarding (2 days x 10 persons)',
+      unit: 'Day',
+      qty: 2,
+      unitPrice: 3500000,
+      amount: 7000000
+    },
+    {
+      no: 4,
+      description: 'Annual Maintenance & Technical Support (12-Month Package)',
+      unit: 'Year',
+      qty: 1,
+      unitPrice: 6000000,
+      amount: 6000000
+    }
+  ],
+  subtotal: 46,
+  vatRate: 10,
+  vat: 4.6,
+  totalDue: 50.6,
+  amountInWords: 'Fifty million six hundred thousand Vietnamese Dong only',
+  bankAccount: {
+    bank: 'Vietcombank - Ho Chi Minh City Branch',
+    accountNo: '0071002345678',
+    accountName: 'ABC TECHNOLOGY SOLUTIONS CO., LTD.'
+  },
+  uncertainFields: [],
+  _countryCode: 'UNKNOWN',
+  _countryName: 'Unknown',
+  _currency: 'UNKNOWN',
+  _roundingUnit: 0.01
+}
+
+
+ createValidateAmountsTool: 
+ {
+  isValid: false,
+  errors: [
+    'Subtotal: tính được 46000000, ghi 46',
+    'VAT 10%: tính được 4600000, ghi 4.6',
+    'Total: tính được 50600000, ghi 50.6'
+  ],
+  itemChecks: [
+    {
+      no: 1,
+      description: 'Warehouse Management Software (Import/Export Module)',
+      expected: 25000000,
+      actual: 25000000,
+      isValid: true
+    },
+    {
+      no: 2,
+      description: 'System Installation & Deployment at 3 Branch Offices',
+      expected: 8000000,
+      actual: 8000000,
+      isValid: true
+    },
+    {
+      no: 3,
+      description: 'Staff Training & Onboarding (2 days x 10 persons)',
+      expected: 7000000,
+      actual: 7000000,
+      isValid: true
+    },
+    {
+      no: 4,
+      description: 'Annual Maintenance & Technical Support (12-Month Package)',
+      expected: 6000000,
+      actual: 6000000,
+      isValid: true
+    }
+  ],
+  calculatedSubtotal: 46000000,
+  calculatedVat: 4600000,
+  calculatedTotal: 50600000,
+  currency: 'UNKNOWN',
+  tolerance: 0.02
+}
+
+
+ createDetectFraudTool: 
+ {
+  countryCode: 'UNKNOWN',
+  countryName: 'Unknown',
+  hasFraud: true,
+  fraudFlags: [ '[Số tiền đáng ngờ] Tất cả dòng là bội số của 1,000 UNKNOWN' ],
+  amountMismatch: true,
+  rulesApplied: {
+    suspiciousRoundThreshold: 1000,
+    workingDayCheck: false,
+    unitPriceDriftPct: 5,
+    taxIdValidation: false,
+    amountInWordsCheck: true,
+    visionManipulationCheck: true
+  }
+}
+[Nest] 94830  - 05/31/2026, 2:06:27 PM    WARN [NotificationService] [INVOICE ALERT] ⚠️ Sai thông tin tiền - Cần kiểm tra lại - Invoice: INV-2024-00147
+
+
+ createSendNotificationTool: 
+ { sent: true, type: 'AMOUNT_MISMATCH', invoiceNo: 'INV-2024-00147' }
+[Nest] 94830  - 05/31/2026, 2:06:32 PM    WARN [NotificationService] [INVOICE ALERT] 🚨 Nghi ngờ gian lận hóa đơn - Cần kiểm tra lại - Invoice: INV-2024-00147
+
+
+ createSendNotificationTool: 
+ { sent: true, type: 'SUSPECTED_FRAUD', invoiceNo: 'INV-2024-00147' }
+buildResultFromMessages {
+  detectedCountry: {
+    countryCode: 'VN',
+    confidence: 95,
+    detectedLanguage: 'en',
+    detectedCurrency: 'VND'
+  },
+  invoiceNo: 'INV-2024-00147',
+  invoiceDate: '2024-03-15',
+  dueDate: '2024-04-14',
+  seller: {
+    name: 'ABC TECHNOLOGY SOLUTIONS CO., LTD.',
+    taxId: '0312345678',
+    address: '123 Nguyen Hue Street, District 1, Ho Chi Minh City',
+    email: 'accounting@abc-tech.vn',
+    phone: '+84 28 3822 1234'
+  },
+  buyer: {
+    name: 'XYZ Trading Joint Stock Company',
+    taxId: '0301234567',
+    address: '456 Le Loi Street, District 3, Ho Chi Minh City'
+  },
+  items: [
+    {
+      no: 1,
+      description: 'Warehouse Management Software (Import/Export Module)',
+      unit: 'Package',
+      qty: 1,
+      unitPrice: 25000000,
+      amount: 25000000
+    },
+    {
+      no: 2,
+      description: 'System Installation & Deployment at 3 Branch Offices',
+      unit: 'Time',
+      qty: 1,
+      unitPrice: 8000000,
+      amount: 8000000
+    },
+    {
+      no: 3,
+      description: 'Staff Training & Onboarding (2 days x 10 persons)',
+      unit: 'Day',
+      qty: 2,
+      unitPrice: 3500000,
+      amount: 7000000
+    },
+    {
+      no: 4,
+      description: 'Annual Maintenance & Technical Support (12-Month Package)',
+      unit: 'Year',
+      qty: 1,
+      unitPrice: 6000000,
+      amount: 6000000
+    }
+  ],
+  subtotal: 46,
+  vatRate: 10,
+  vat: 4.6,
+  totalDue: 50.6,
+  amountInWords: 'Fifty million six hundred thousand Vietnamese Dong only',
+  bankAccount: {
+    bank: 'Vietcombank - Ho Chi Minh City Branch',
+    accountNo: '0071002345678',
+    accountName: 'ABC TECHNOLOGY SOLUTIONS CO., LTD.'
+  },
+  uncertainFields: [],
+  _countryCode: 'UNKNOWN',
+  _countryName: 'Unknown',
+  _currency: 'UNKNOWN',
+  _roundingUnit: 0.01,
+  countryCode: undefined,
+  countryConfidence: undefined,
+  imageQuality: [ 'CLEAR' ],
+  status: 'SUSPECTED_FRAUD',
+  fraudFlags: [ '[Số tiền đáng ngờ] Tất cả dòng là bội số của 1,000 UNKNOWN' ]
+}
+Killed
+mannguyen@NEKO450:~/Documents/MyProject/Chat Prj/wallet-agentic$ 
