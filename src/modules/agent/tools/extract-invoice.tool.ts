@@ -97,7 +97,7 @@ Trả về kết quả duy nhất dưới dạng một JSON Object thuần túy 
       }
 
       // Lấy profile dựa trên quốc gia mà LLM vừa tự động nhận diện được ở Bước 1
-      const detectedCountryCode = extracted._detectedCountry?.countryCode ?? 'UNKNOWN';
+      const detectedCountryCode = extracted.detectedCountry?.countryCode ?? 'UNKNOWN';
       const profile = getProfile(detectedCountryCode as CountryCode);
 
       // Tiến hành Normalize các chuỗi tiền tệ thô dựa theo định dạng của profile quốc gia đó

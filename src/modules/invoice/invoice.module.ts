@@ -25,8 +25,14 @@ import { NotificationService } from './notification/notification.service';
         },
       }),
       fileFilter: (req, file, cb) => {
-        if (file.mimetype !== 'application/pdf') {
-          return cb(new Error('Only PDF files are allowed'), false);
+        const isPdf = file.mimetype === 'application/pdf';
+        const isImage = file.mimetype.startsWith('image/');
+
+        if (!isPdf && !isImage) {
+          return cb(
+            new Error('Only PDF and image files are allowed'),
+            false,
+          );
         }
         cb(null, true);
       },
