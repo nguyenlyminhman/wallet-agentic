@@ -1,12 +1,9 @@
-// invoice.service.ts
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InvoiceResultDto, InvoiceStatus } from './dto/invoice-result.dto';
 import sharp from 'sharp';
-import * as pdf2pic from 'pdf2pic';
 import { InvoiceAgent } from '../agent/invoice.agent';
 import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
+import { pdfToImageBuffer } from '../utils/pdf-to-image.util';
 
 @Injectable()
 export class InvoiceService {
@@ -42,7 +39,7 @@ export class InvoiceService {
   let imageBuffer: Buffer;
 
   if (file.mimetype === 'application/pdf') {
-    imageBuffer = await this.convertPdfToImage(filePath); // truyền path trực tiếp
+    imageBuffer = await pdfToImageBuffer(filePath)
   } else {
     imageBuffer = fileBuffer;
   }
@@ -56,27 +53,27 @@ export class InvoiceService {
   return optimized.toString('base64');
 }
 
-private async convertPdfToImage(pdfPath: string): Promise<Buffer> {
-  const tmpDir = os.tmpdir();
-  const tmpImg = path.join(tmpDir, `inv_${Date.now()}`);
+// private async convertPdfToImage(pdfPath: string): Promise<Buffer> {
+//   const tmpDir = os.tmpdir();
+//   const tmpImg = path.join(tmpDir, `inv_${Date.now()}`);
 
-  const converter = pdf2pic.fromPath(pdfPath, { // ← dùng thẳng path, không cần ghi lại
-    density: 200,
-    saveFilename: path.basename(tmpImg),
-    savePath: tmpDir,
-    format: 'jpeg',
-    width: 2480,
-    height: 3508,
-  });
+//   const converter = pdf2pic.fromPath(pdfPath, { // ← dùng thẳng path, không cần ghi lại
+//     density: 200,
+//     saveFilename: path.basename(tmpImg),
+//     savePath: tmpDir,
+//     format: 'jpeg',
+//     width: 2480,
+//     height: 3508,
+//   });
 
-  const result = await converter(1, { responseType: 'buffer' });
+//   const result = await converter(1, { responseType: 'buffer' });
 
-  if (!result?.buffer || result.buffer.length === 0) {
-    throw new Error('pdf2pic trả về buffer rỗng — kiểm tra ghostscript đã cài chưa');
-  }
+//   if (!result?.buffer || result.buffer.length === 0) {
+//     throw new Error('pdf2pic trả về buffer rỗng — kiểm tra ghostscript đã cài chưa');
+//   }
 
-  return result.buffer;
-}
+//   return result.buffer;
+// }
 
   private async saveToDatabase(result: InvoiceResultDto): Promise<void> {
     // insert vào table: invoices
