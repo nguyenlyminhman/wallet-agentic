@@ -22,25 +22,62 @@ export enum ImageQuality {
   TORN = 'TORN',           // rách
 }
 
+export interface DetectedCountry {
+  countryCode: CountryCode;
+  confidence: number;           // 0-100
+  detectedLanguage: string;
+  detectedCurrency: string;
+}
+
+export interface BankAccount {
+  bank: string;
+  accountNo: string;
+  accountName: string;
+}
+
+export interface Party {
+  name: string;
+  taxId: string;
+  address: string;
+  email?: string;
+  phone?: string;
+}
+
 export interface InvoiceResultDto {
+  // Country detection
+  detectedCountry: DetectedCountry;
+  countryCode: CountryCode;
+  countryName: string;
+  countryConfidence: number;    // 0-100
+
+  // Invoice info
   invoiceNo: string;
   invoiceDate: string;
   dueDate: string;
-  seller: { name: string; taxId: string; address: string };
-  buyer: { name: string; taxId: string; address: string };
+
+  // Parties
+  seller: Party;
+  buyer: Party;
+
+  // Line items
   items: InvoiceItem[];
+
+  // Amounts
   subtotal: number;
-  vat: number;
   vatRate: number;
+  vat: number;
   totalDue: number;
+  amountInWords: string;
   currency: string;
-  imageQuality: ImageQuality[];  // có thể nhiều vấn đề cùng lúc
+
+  // Payment
+  bankAccount?: BankAccount;
+
+  // Validation
+  imageQuality: ImageQuality[];
   status: InvoiceStatus;
-  fraudFlags: string[];          // mô tả cụ thể các dấu hiệu gian lận
-  // agentReasoning: string;        // chuỗi suy luận của agent
-  countryCode: CountryCode;
-  countryName: string;
-  countryDetectionConfidence: number;  // 0-100
+  fraudFlags: string[];
+  uncertainFields?: string[];
   taxIdValidation: {
     sellerValid: boolean;
     buyerValid: boolean;
