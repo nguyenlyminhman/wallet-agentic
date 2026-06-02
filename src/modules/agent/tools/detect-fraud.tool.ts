@@ -4,6 +4,13 @@ import { z } from 'zod';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { CountryCode, getProfile } from 'src/modules/invoice/config/country-profiles.config';
 
+/** Gemini trả về content dạng string hoặc MessageContentComplex[] — normalize về string để xử lý cho dễ */
+function extractTextContent(c: unknown): string {
+  if (typeof c === 'string') return c;
+  if (Array.isArray(c)) return (c as any[]).filter(p => p.type === 'text').map(p => p.text ?? '').join('');
+  return String(c ?? '');
+}
+
 export function createDetectFraudTool(model: ChatGoogleGenerativeAI, rawBase64: string) {
   return new DynamicStructuredTool({
     name: 'detectFraud',
@@ -13,8 +20,8 @@ export function createDetectFraudTool(model: ChatGoogleGenerativeAI, rawBase64: 
       validationResult: z.string(),
     }),
     func: async ({ invoiceData, validationResult }) => {
-      const invoice = JSON.parse(invoiceData);
-      const validation = JSON.parse(validationResult);
+      const invoice = typeof invoiceData === 'string' ? JSON.parse(invoiceData) : invoiceData;
+      const validation = typeof validationResult === 'string' ? JSON.parse(validationResult) : validationResult;
       const profile = getProfile((invoice._countryCode ?? 'UNKNOWN') as CountryCode);
       const rules = profile.fraudRules;
       const flags: string[] = [];
@@ -80,22 +87,24 @@ export function createDetectFraudTool(model: ChatGoogleGenerativeAI, rawBase64: 
       // [Gian lận 6] Cross-check amountInWords — chỉ với quốc gia có trường này
       if (invoice.amountInWords && invoice.totalDue) {
         const crossCheckPrompt = `
-Hóa đơn ${profile.name}.
-Số tiền bằng chữ: "${invoice.amountInWords}"
-Số tiền bằng số: ${invoice.totalDue} ${profile.currency}
+                                Hóa đơn ${profile.name}.
+                                Số tiền bằng chữ: "${invoice.amountInWords}"
+                                Số tiền bằng số: ${invoice.totalDue} ${profile.currency}
 
-Hai giá trị này có khớp nhau không?
-Trả về JSON: { "match": true/false, "parsedFromWords": <number_or_null> }
-Chỉ JSON.`;
+                                Hai giá trị này có khớp nhau không?
+                                Trả về JSON: { "match": true/false, "parsedFromWords": <number_or_null> }
+                                Chỉ JSON.`;
         try {
           const crossCheck = await model.invoke([{ role: 'user', content: crossCheckPrompt }]);
-          const result = JSON.parse(crossCheck.content as string);
+          const result = JSON.parse(extractTextContent(crossCheck.content));
           if (result.match === false) {
             flags.push(
               `[Chữ-số không khớp] Số tiền bằng chữ "${invoice.amountInWords}" không khớp số ${invoice.totalDue} — dấu hiệu gian lận điển hình`
             );
           }
-        } catch { /* skip nếu parse lỗi */ }
+        } catch { 
+          /* skip nếu parse lỗi - có thể ghi log vào DB để tracking */ 
+        }
       }
 
       // [Gian lận 7] Gemini Vision phát hiện chỉnh sửa ảnh
@@ -108,16 +117,16 @@ Chỉ JSON.`;
               {
                 type: 'text',
                 text: `Kiểm tra hóa đơn này có dấu hiệu làm giả không? Xem xét:
-1. Font chữ không đồng nhất (số bị thay thế)
-2. Vùng trắng bất thường hoặc pixel artifact
-3. Con số lệch hàng so với các dòng khác
-4. Dấu mộc/chữ ký có vẻ copy-paste
-Trả về JSON: { "manipulationDetected": true/false, "suspiciousAreas": [], "confidence": 0-100 }`,
+                      1. Font chữ không đồng nhất (số bị thay thế)
+                      2. Vùng trắng bất thường hoặc pixel artifact
+                      3. Con số lệch hàng so với các dòng khác
+                      4. Dấu mộc/chữ ký có vẻ copy-paste
+                      Trả về JSON: { "manipulationDetected": true/false, "suspiciousAreas": [], "confidence": 0-100 }`,
               },
             ],
           },
         ]);
-        const visionResult = JSON.parse(visionRes.content as string);
+        const visionResult = JSON.parse(extractTextContent(visionRes.content));
         if (visionResult.manipulationDetected && visionResult.confidence > 60) {
           visionResult.suspiciousAreas.forEach((area: string) =>
             flags.push(`[Chỉnh sửa ảnh] ${area}`)

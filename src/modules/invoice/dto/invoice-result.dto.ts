@@ -22,6 +22,14 @@ export enum ImageQuality {
   TORN = 'TORN',           // rách
 }
 
+/** Full output từ checkImageQuality tool */
+export interface ImageQualityResult {
+  qualities: ImageQuality[];
+  confidence: number;       // 0-100
+  details: string;          // mô tả chi tiết từ Gemini
+  readability: 'HIGH' | 'MEDIUM' | 'LOW';
+}
+
 export interface DetectedCountry {
   countryCode: CountryCode;
   confidence: number;           // 0-100
@@ -74,7 +82,7 @@ export interface InvoiceResultDto {
   bankAccount?: BankAccount;
 
   // Validation
-  imageQuality: ImageQuality[];
+  imageQuality: ImageQualityResult;  // full object thay vì chỉ string[]
   status: InvoiceStatus;
   fraudFlags: string[];
   uncertainFields?: string[];

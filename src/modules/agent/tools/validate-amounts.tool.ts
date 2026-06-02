@@ -10,8 +10,9 @@ export function createValidateAmountsTool() {
       invoiceData: z.string(),
     }),
     func: async ({ invoiceData }) => {
-      const invoice = JSON.parse(invoiceData);
-      // Lấy roundingUnit từ country profile (được đính kèm bởi extractInvoice)
+      // LLM đôi khi nó truyền object thay vì string thuần
+      const invoice = typeof invoiceData === 'string' ? JSON.parse(invoiceData) : invoiceData;
+
       const tolerance = (invoice._roundingUnit ?? 1) * 2;
 
       const results: any = {
@@ -44,7 +45,7 @@ export function createValidateAmountsTool() {
             `[${results.currency}] Dòng ${item.no}: ${item.qty} × ${item.unitPrice} = ${expected}, hóa đơn ghi ${item.amount}`
           );
         }
-        results.calculatedSubtotal += parseFloat(item.amount);
+        results.calculatedSubtotal += Math.round(item.amount);
       }
 
       if (Math.abs(results.calculatedSubtotal - invoice.subtotal) > tolerance) {
@@ -73,7 +74,6 @@ export function createValidateAmountsTool() {
         );
       }
 
-      console.log('\n\n createValidateAmountsTool: \n', {...results});
       return JSON.stringify(results);
     },
   });

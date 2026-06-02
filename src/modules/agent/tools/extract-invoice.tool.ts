@@ -5,6 +5,19 @@ import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { parseAmount, parseDateToISO, parsePrice, validateTaxId } from '../../utils/number-parser.util';
 import { CountryCode, getProfile, COUNTRY_PROFILES } from 'src/modules/invoice/config/country-profiles.config';
 
+/** Gemini trả về content dạng string hoặc MessageContentComplex[] — normalize về string */
+function extractTextContent(content: unknown): string {
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    return (content as any[])
+      .filter(p => p.type === 'text')
+      .map(p => p.text ?? '')
+      .join('');
+  }
+  return String(content ?? '');
+}
+
+
 // Gom đống hints từ detect-country cũ sang đây để LLM tham khảo khi tự nhận diện
 const COUNTRY_HINTS = Object.values(COUNTRY_PROFILES)
   .filter(p => p.code !== 'UNKNOWN')
@@ -17,9 +30,19 @@ export function createExtractInvoiceTool(model: ChatGoogleGenerativeAI, rawBase6
     description: 'Tự động nhận diện quốc gia và trích xuất toàn bộ thông tin hóa đơn phù hợp theo định dạng quốc gia đó.',
     // Schema đơn giản lại, chỉ cần nhận vào độ rõ nét (readability) thu được từ bước check quality
     schema: z.object({
-      readability: z.enum(['HIGH', 'MEDIUM', 'LOW']).default('HIGH'),
+      readability: z.string().default('HIGH'),
     }),
-    func: async ({ readability }) => {
+    func: async ({ readability: readabilityRaw }) => {
+      // Agent có thể truyền vào JSON string nguyên từ checkImageQuality output — parse defensive
+      let readability: 'HIGH' | 'MEDIUM' | 'LOW' = 'HIGH';
+      try {
+        if (readabilityRaw.startsWith('{')) {
+          const parsed = JSON.parse(readabilityRaw);
+          readability = parsed.readability ?? 'HIGH';
+        } else if (['HIGH', 'MEDIUM', 'LOW'].includes(readabilityRaw.toUpperCase())) {
+          readability = readabilityRaw.toUpperCase() as 'HIGH' | 'MEDIUM' | 'LOW';
+        }
+      } catch { /* fallback to HIGH */ }
       const cleanBase64 = rawBase64.replace(/\s+/g, '').replace(/^data:image\/\w+;base64,/, '');
       const formattedDataUrl = `data:image/jpeg;base64,${cleanBase64}`;
 
@@ -87,13 +110,14 @@ Trả về kết quả duy nhất dưới dạng một JSON Object thuần túy 
       let extracted: any;
       try {
         // Loại bỏ markdown block nếu model vô tình trả về
-        const cleanContent = (response.content as string)
+        const rawText = extractTextContent(response.content);
+        const cleanContent = rawText
           .replace(/```json/g, '')
           .replace(/```/g, '')
           .trim();
         extracted = JSON.parse(cleanContent);
       } catch {
-        return response.content as string;
+        return extractTextContent(response.content);
       }
 
       // Lấy profile dựa trên quốc gia mà LLM vừa tự động nhận diện được ở Bước 1
@@ -131,7 +155,7 @@ Trả về kết quả duy nhất dưới dạng một JSON Object thuần túy 
       extracted._currency = profile.currency;
       extracted._roundingUnit = profile.roundingUnit;
 
-      console.log('\n\n [Gộp Tool] createExtractInvoiceTool thành công: \n', {...extracted});
+      console.log('\n\n createExtractInvoiceTool thành công: \n', {...extracted});
       return JSON.stringify(extracted);
     },
   });

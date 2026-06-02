@@ -9,9 +9,7 @@ import { createValidateAmountsTool } from './tools/validate-amounts.tool';
 import { createDetectFraudTool } from './tools/detect-fraud.tool';
 import { createSendNotificationTool } from './tools/send-notification.tool';
 import { NotificationService } from '../invoice/notification/notification.service';
-import { ImageQuality, InvoiceResultDto, InvoiceStatus } from '../invoice/dto/invoice-result.dto';
-import { createDetectCountryTool } from './tools/detect-country.tool';
-
+import { ImageQuality, ImageQualityResult, InvoiceResultDto, InvoiceStatus } from '../invoice/dto/invoice-result.dto';
 @Injectable()
 export class InvoiceAgent {
   private model: ChatGoogleGenerativeAI;
@@ -28,7 +26,7 @@ export class InvoiceAgent {
   async processInvoice(imageBase64: string): Promise<InvoiceResultDto> {
     const tools = [
       createCheckQualityTool(this.model, imageBase64),
-      createExtractInvoiceTool(this.model, imageBase64),      
+      createExtractInvoiceTool(this.model, imageBase64),
       createValidateAmountsTool(),
       createDetectFraudTool(this.model, imageBase64),
       createSendNotificationTool(this.notificationService),
@@ -37,38 +35,54 @@ export class InvoiceAgent {
     const agent = createReactAgent({
       llm: this.model,
       tools,
+      messageModifier: `You are an invoice processing assistant for an enterprise payment system.
+                        You have access to tools to analyze invoice images.
+
+                        Your goal: determine if the invoice is valid, has amount mismatches, or suspected fraud.
+                        Use the available tools as needed to reach a confident conclusion.
+
+                        Rules:
+                        - Always check image quality BEFORE attempting extraction
+                        - If image quality is LOW, send a LOW_QUALITY notification immediately and still attempt extraction
+                        - Only validate amounts if extraction succeeded
+                        - Collect ALL issues first (run validateAmounts AND detectFraud in parallel if possible), then send notifications at the end
+                        - Send a separate notification for every issue found (AMOUNT_MISMATCH, SUSPECTED_FRAUD, LOW_QUALITY)
+
+                        MANDATORY FINAL STEP:
+                        After all tools have been called and all notifications sent, you MUST output ONLY a raw JSON object (no markdown, no explanation) with this exact structure:
+                        {
+                          "invoiceNo": "",
+                          "invoiceDate": "",
+                          "dueDate": "",
+                          "seller": { "name": "", "taxId": "", "address": "" },
+                          "buyer": { "name": "", "taxId": "", "address": "" },
+                          "items": [],
+                          "subtotal": 0,
+                          "vat": 0,
+                          "totalDue": 0,
+                          "status": "VALID" | "AMOUNT_MISMATCH" | "SUSPECTED_FRAUD",
+                          "imageQuality": [],
+                          "fraudFlags": [],
+                          "_countryCode": "",
+                          "_countryName": "",
+                          "_currency": ""
+                        }
+                        Populate all fields from the tool results. Output ONLY this JSON — no other text.`,
     });
 
-    const systemPrompt = `Bạn là hệ thống kiểm tra hóa đơn tự động. Với mỗi hóa đơn được upload:
-
-                    LUÔN thực hiện theo đúng thứ tự sau:
-                    1. Gọi checkImageQuality để kiểm tra chất lượng ảnh.
-                    2. Gọi extractInvoice để tự động nhận diện quốc gia và trích xuất tất cả thông tin hóa đơn (truyền kết quả 'readability' từ bước 1 vào tham số đầu vào của tool).
-                    3. Gọi validateAmounts để kiểm tra tổng tiền dựa trên dữ liệu đã trích xuất.
-                    4. Gọi detectFraud để kiểm tra các dấu hiệu gian lận.
-                    5. Nếu validateAmounts trả về isValid=false → gọi sendNotification với type=AMOUNT_MISMATCH.
-                    6. Nếu detectFraud trả về hasFraud=true → gọi sendNotification với type=SUSPECTED_FRAUD.
-                    7. Nếu chất lượng ảnh ở bước 1 là LOW → gọi sendNotification với type=LOW_QUALITY.
-                    8. Tổng hợp toàn bộ dữ liệu (bao gồm cả thông tin quốc gia hệ thống tự nhận diện được) và trả về kết quả cuối dạng JSON InvoiceResultDto.
-
-Không bỏ qua bất kỳ bước nào.`;
-const cleanBase64 = imageBase64.replace(/\s+/g, '').replace(/^data:image\/\w+;base64,/, '');
+    const cleanBase64 = imageBase64.replace(/\s+/g, '').replace(/^data:image\/\w+;base64,/, '');
     const result = await agent.invoke({
       messages: [
-        {
-          role: 'system',
-          content: systemPrompt,
-        },
         new HumanMessage({
           content: [
             {
               type: 'text',
-              text: 'Xử lý hóa đơn này theo đúng các bước yêu cầu trong hệ thống.',
+              text: `Analyze this invoice and determine its status. 
+                    Image is available to all tools via their context.`,
             },
             {
               type: 'image_url',
               image_url: {
-                // Đảm bảo bọc lót xóa khoảng trắng cho an toàn
                 url: `data:image/jpeg;base64,${cleanBase64}`,
               },
             },
@@ -86,8 +100,6 @@ const cleanBase64 = imageBase64.replace(/\s+/g, '').replace(/^data:image\/\w+;ba
 
     try {
       const finalJson = JSON.parse(lastMessage.content as string);
-      console.log('{ ...finalJson, agentReasoning }', { ...finalJson, agentReasoning });
-
       return { ...finalJson, agentReasoning };
     } catch {
       // Nếu agent không trả về JSON thuần, parse từ tool calls
@@ -100,12 +112,24 @@ const cleanBase64 = imageBase64.replace(/\s+/g, '').replace(/^data:image\/\w+;ba
     let invoiceData: any = {};
     let validation: any = { isValid: true, errors: [] };
     let fraud: any = { hasFraud: false, fraudFlags: [] };
-    let quality: any = { qualities: ['CLEAR'] };
-    let countryInfo: any = {};
+    let quality: ImageQualityResult = {
+      qualities: [ImageQuality.CLEAR],
+      confidence: 0,
+      details: '',
+      readability: 'LOW', // set default - có gì cho user xử lý
+    };
 
     for (const msg of messages) {
       if (msg.name === 'checkImageQuality') {
-        try { quality = JSON.parse(msg.content); } catch { }
+        try {
+          const parsed = JSON.parse(msg.content);
+          quality = {
+            qualities: (parsed.qualities ?? []).map((q: string) => q as ImageQuality),
+            confidence: parsed.confidence ?? 0,
+            details: parsed.details ?? '',
+            readability: parsed.readability ?? 'LOW',
+          };
+        } catch { }
       }
       if (msg.name === 'extractInvoice') {
         try { invoiceData = JSON.parse(msg.content); } catch { }
@@ -122,22 +146,15 @@ const cleanBase64 = imageBase64.replace(/\s+/g, '').replace(/^data:image\/\w+;ba
     if (fraud.hasFraud) status = InvoiceStatus.SUSPECTED_FRAUD;
     else if (!validation.isValid) status = InvoiceStatus.AMOUNT_MISMATCH;
 
-    console.log('buildResultFromMessages', {
+    const result = {
       ...invoiceData,
-      countryCode: countryInfo.countryCode, // ← Đưa thông tin quốc gia vào DTO trả về
-      countryConfidence: countryInfo.confidence,
-      imageQuality: quality.qualities as ImageQuality[],
+      countryCode: invoiceData._countryCode ?? fraud.countryCode ?? 'UNKNOWN',
+      countryConfidence: invoiceData.detectedCountry?.confidence ?? 0,
+      imageQuality: quality,
       status,
       fraudFlags: fraud.fraudFlags || [],
-      // agentReasoning,
-    })
-
-    return {
-      ...invoiceData,
-      imageQuality: quality.qualities as ImageQuality[],
-      status,
-      fraudFlags: fraud.fraudFlags || [],
-      // agentReasoning,
     };
+
+    return result;
   }
 }
