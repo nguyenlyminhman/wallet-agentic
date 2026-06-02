@@ -1,4 +1,3 @@
-// agent/invoice.agent.ts
 import { Injectable } from '@nestjs/common';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { createCheckQualityTool } from './tools/check-quality.tool';

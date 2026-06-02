@@ -1,11 +1,9 @@
-// agent/tools/extract-invoice.tool.ts
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
-import { parseAmount, parseDateToISO, parsePrice, validateTaxId } from '../../utils/number-parser.util';
+import { parseDateToISO, parsePrice, validateTaxId } from '../../utils/number-parser.util';
 import { CountryCode, getProfile, COUNTRY_PROFILES } from 'src/modules/invoice/config/country-profiles.config';
 
-/** Gemini trả về content dạng string hoặc MessageContentComplex[] — normalize về string */
 function extractTextContent(content: unknown): string {
   if (typeof content === 'string') return content;
   if (Array.isArray(content)) {
@@ -18,7 +16,7 @@ function extractTextContent(content: unknown): string {
 }
 
 
-// Gom đống hints từ detect-country cũ sang đây để LLM tham khảo khi tự nhận diện
+// Gom đống hints từ detect-country trong extract invoice sang đây để LLM tham khảo khi tự nhận diện
 const COUNTRY_HINTS = Object.values(COUNTRY_PROFILES)
   .filter(p => p.code !== 'UNKNOWN')
   .map(p => `${p.code}: keywords=[${p.invoiceKeywords.slice(0, 3).join(', ')}], currency=${p.currency}, taxIdLabel="${p.taxIdLabel}"`)
@@ -27,7 +25,7 @@ const COUNTRY_HINTS = Object.values(COUNTRY_PROFILES)
 export function createExtractInvoiceTool(model: ChatGoogleGenerativeAI, rawBase64: string) {
   return new DynamicStructuredTool({
     name: 'extractInvoice',
-    description: 'Tự động nhận diện quốc gia và trích xuất toàn bộ thông tin hóa đơn phù hợp theo định dạng quốc gia đó.',
+    description: 'Automatically detect the invoice country and extract all invoice information according to that country-specific format.',
     // Schema đơn giản lại, chỉ cần nhận vào độ rõ nét (readability) thu được từ bước check quality
     schema: z.object({
       readability: z.string().default('HIGH'),
@@ -47,55 +45,55 @@ export function createExtractInvoiceTool(model: ChatGoogleGenerativeAI, rawBase6
       const formattedDataUrl = `data:image/jpeg;base64,${cleanBase64}`;
 
       const qualityHint = readability === 'LOW'
-        ? 'Ảnh chất lượng thấp — hãy cố gắng đọc từng vùng rõ nhất, đánh dấu trường không chắc bằng "?".'
+        ? 'The image quality is low — try to read the clearest regions and mark uncertain fields with "?".'
         : '';
 
-      // Thiết kế Prompt hai giai đoạn trong cùng 1 lần gọi (Single-shot Chain of Thought):
+      // Prompt hai giai đoạn trong cùng 1 lần gọi (Single-shot Chain of Thought):
       // Bước 1: Bắt LLM nhìn ảnh chọn quốc gia.
       // Bước 2: Bắt LLM dùng quy tắc quốc gia đó để bóc tách dữ liệu JSON.
       const prompt = `${qualityHint}
-Bạn là chuyên gia AI trích xuất hóa đơn đa quốc gia. Hãy thực hiện xử lý ảnh hóa đơn này theo 2 bước:
+                        You are an AI expert for multi-country invoice extraction. Process this invoice image in 2 steps:
 
-[BƯỚC 1: NHẬN DIỆN QUỐC GIA]
-Dựa vào ngôn ngữ, ký hiệu tiền tệ (¥, $, ₩, đ, €, £...), định dạng ngày tháng, nhãn mã số thuế... Hãy đối chiếu với danh sách quy tắc các nước sau để xác định quốc gia phát hành:
-${COUNTRY_HINTS}
+                        [STEP 1: DETECT THE COUNTRY]
+                        Based on the language, currency symbols (¥, $, ₩, đ, €, £...), date format, tax ID labels, and other clues, compare the invoice against the country rules below to determine the issuing country:
+                        ${COUNTRY_HINTS}
 
-[BƯỚC 2: TRÍCH XẤU THÔNG TIN HÓA ĐƠN]
-Sau khi xác định được quốc gia, hãy áp dụng quy tắc đặc thù của quốc gia đó để map các trường dữ liệu:
-- Số hóa đơn (Invoice No, 請求書番号...)
-- Ngày hóa đơn, Ngày đến hạn (Invoice Date, Due Date...)
-- Thông tin Người bán, Người mua (Tên, Mã số thuế, Địa chỉ...)
-- Các trường số tiền: Tổng trước thuế (Subtotal), Thuế (VAT/Tax), Tổng cộng (Total)
+                        [STEP 2: EXTRACT INVOICE INFORMATION]
+                        After detecting the country, apply that country's specific rules to map the data fields:
+                        - Invoice number (Invoice No, 請求書番号...)
+                        - Invoice date and due date
+                        - Seller and buyer information (name, tax ID, address...)
+                        - Amount fields: subtotal, tax (VAT/Tax), and total
 
-Trả về kết quả duy nhất dưới dạng một JSON Object thuần túy (không bọc trong markdown \`\`\`json), tuân thủ cấu trúc sau:
-{
-  "detectedCountry": {
-    "countryCode": "VN" | "US" | "JP" | "CN" | "SG" | "TH" | "KR" | "MY" | "ID" | "PH" | "DE" | "FR" | "GB" | "AU" | "IN" | "UNKNOWN",
-    "confidence": 0-100,
-    "detectedLanguage": "vi" | "en" | "ja" | "zh" | "th" | "ko" | "de" | "fr" | "id" | "ms" | "other",
-    "detectedCurrency": "VND" | "USD" | "JPY" | "EUR" | "GBP" | "SGD" | "THB" | "KRW" | "MYR" | "IDR" | "PHP" | "AUD" | "INR" | "CNY" | "UNKNOWN"
-  },
-  "invoiceNo": "",
-  "invoiceDate": "",
-  "dueDate": "",
-  "seller": { "name": "", "taxId": "", "address": "", "email": "", "phone": "" },
-  "buyer": { "name": "", "taxId": "", "address": "" },
-  "items": [
-    { "no": 1, "description": "", "unit": "", "qty": 0, "unitPrice": "RAW_STRING", "amount": "RAW_STRING" }
-  ],
-  "subtotal": "RAW_STRING",
-  "vatRate": 0,
-  "vat": "RAW_STRING",
-  "totalDue": "RAW_STRING",
-  "amountInWords": "",
-  "bankAccount": { "bank": "", "accountNo": "", "accountName": "" },
-  "uncertainFields": []
-}
-⚠️ QUY TẮC BẮT BUỘC CHO SỐ TIỀN TRONG ITEMS:
-1. KHÔNG ĐƯỢC TỰ Ý RÚT GỌN SỐ TIỀN. Nếu đơn giá trên hóa đơn là 25 triệu (ghi tắt là 25 hay 25.000), bạn PHẢI TỰ BÙ ĐỦ SỐ 0 để điền vào JSON thành chuỗi đầy đủ chữ số: "25,000,000" hoặc "25000000".
-2. Đảm bảo giá trị của "amount" phải bằng "unitPrice" nhân với "qty" về mặt toán học trước khi format thành chuỗi.
-3. Giữ nguyên các ký tự phân cách gốc (chấm/phẩy) nếu có trên hóa đơn, không tự ý convert số.
-`;
+                        Return exactly one raw JSON Object only (do not wrap it in markdown \`\`\`json), following this structure:
+                        {
+                          "detectedCountry": {
+                            "countryCode": "VN" | "US" | "JP" | "CN" | "SG" | "TH" | "KR" | "MY" | "ID" | "PH" | "DE" | "FR" | "GB" | "AU" | "IN" | "UNKNOWN",
+                            "confidence": 0-100,
+                            "detectedLanguage": "vi" | "en" | "ja" | "zh" | "th" | "ko" | "de" | "fr" | "id" | "ms" | "other",
+                            "detectedCurrency": "VND" | "USD" | "JPY" | "EUR" | "GBP" | "SGD" | "THB" | "KRW" | "MYR" | "IDR" | "PHP" | "AUD" | "INR" | "CNY" | "UNKNOWN"
+                          },
+                          "invoiceNo": "",
+                          "invoiceDate": "",
+                          "dueDate": "",
+                          "seller": { "name": "", "taxId": "", "address": "", "email": "", "phone": "" },
+                          "buyer": { "name": "", "taxId": "", "address": "" },
+                          "items": [
+                            { "no": 1, "description": "", "unit": "", "qty": 0, "unitPrice": "RAW_STRING", "amount": "RAW_STRING" }
+                          ],
+                          "subtotal": "RAW_STRING",
+                          "vatRate": 0,
+                          "vat": "RAW_STRING",
+                          "totalDue": "RAW_STRING",
+                          "amountInWords": "",
+                          "bankAccount": { "bank": "", "accountNo": "", "accountName": "" },
+                          "uncertainFields": []
+                        }
+                        ⚠️ MANDATORY RULES FOR ITEM AMOUNTS:
+                        1. DO NOT arbitrarily shorten monetary values. If the unit price on the invoice is 25 million (written briefly as 25 or 25.000), you MUST infer and fill the missing zeros in the JSON as a full digit string: "25,000,000" or "25000000".
+                        2. Make sure the "amount" value is mathematically equal to "unitPrice" multiplied by "qty" before formatting it as a string.
+                        3. Preserve the original separator characters (dots/commas) from the invoice when present. Do not arbitrarily convert number formats.
+                      `;
 
       const response = await model.invoke([
         {
@@ -155,7 +153,6 @@ Trả về kết quả duy nhất dưới dạng một JSON Object thuần túy 
       extracted._currency = profile.currency;
       extracted._roundingUnit = profile.roundingUnit;
 
-      console.log('\n\n createExtractInvoiceTool thành công: \n', {...extracted});
       return JSON.stringify(extracted);
     },
   });

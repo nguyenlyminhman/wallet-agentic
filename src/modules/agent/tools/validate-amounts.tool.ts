@@ -1,11 +1,10 @@
-// agent/tools/validate-amounts.tool.ts
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
 export function createValidateAmountsTool() {
   return new DynamicStructuredTool({
     name: 'validateAmounts',
-    description: 'Kiểm tra tổng tiền, tự động dùng rounding unit theo quốc gia.',
+    description: 'Validate invoice totals and automatically use the country-specific rounding unit.',
     schema: z.object({
       invoiceData: z.string(),
     }),

@@ -1,10 +1,8 @@
-// agent/tools/detect-fraud.tool.ts
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { CountryCode, getProfile } from 'src/modules/invoice/config/country-profiles.config';
 
-/** Gemini trả về content dạng string hoặc MessageContentComplex[] — normalize về string để xử lý cho dễ */
 function extractTextContent(c: unknown): string {
   if (typeof c === 'string') return c;
   if (Array.isArray(c)) return (c as any[]).filter(p => p.type === 'text').map(p => p.text ?? '').join('');
@@ -14,7 +12,7 @@ function extractTextContent(c: unknown): string {
 export function createDetectFraudTool(model: ChatGoogleGenerativeAI, rawBase64: string) {
   return new DynamicStructuredTool({
     name: 'detectFraud',
-    description: 'Kiểm tra gian lận với rule set theo từng quốc gia.',
+    description: 'Check for fraud using country-specific rule sets.',
     schema: z.object({
       invoiceData: z.string(),
       validationResult: z.string(),
@@ -30,7 +28,7 @@ export function createDetectFraudTool(model: ChatGoogleGenerativeAI, rawBase64: 
       const formattedDataUrl = `data:image/jpeg;base64,${cleanBase64}`;
 
 
-      // [Gian lận 1] Inflate đơn giá — áp dụng mọi quốc gia
+      // Case 1: Inflate đơn giá — áp dụng mọi quốc gia
       for (const item of invoice.items ?? []) {
         if (item.qty > 0 && item.unitPrice > 0) {
           const calculatedUnit = item.amount / item.qty;
@@ -43,11 +41,11 @@ export function createDetectFraudTool(model: ChatGoogleGenerativeAI, rawBase64: 
         }
       }
 
-      // [Gian lận 2] Trùng hóa đơn
+      // Case 2: Trùng hóa đơn - Vô DB check data
       // const dup = await checkDuplicate(invoice.invoiceNo, invoice.seller?.taxId);
       // if (dup) flags.push(`[Trùng hóa đơn] ${invoice.invoiceNo} đã tồn tại`);
 
-      // [Gian lận 3] Ngày bất thường — chỉ áp dụng với quốc gia có workingDayOnly
+      // Case 3: Ngày bất thường — chỉ áp dụng với quốc gia có workingDayOnly
       if (rules.workingDayOnly && invoice.invoiceDate) {
         const d = new Date(invoice.invoiceDate);
         if (!isNaN(d.getTime())) {
@@ -63,7 +61,7 @@ export function createDetectFraudTool(model: ChatGoogleGenerativeAI, rawBase64: 
         }
       }
 
-      // [Gian lận 4] Số tiền quá tròn — ngưỡng theo quốc gia
+      // Case 4: Số tiền quá tròn — ngưỡng theo quốc gia
       const allRound = (invoice.items ?? []).length > 2 &&
         (invoice.items as any[]).every(
           (item: any) => item.amount % rules.suspiciousRoundAmount === 0
@@ -74,7 +72,7 @@ export function createDetectFraudTool(model: ChatGoogleGenerativeAI, rawBase64: 
         );
       }
 
-      // [Gian lận 5] Tax ID không đúng format quốc gia
+      // Case 5: Tax ID không đúng format quốc gia
       if (profile.taxIdPattern) {
         const sellerTax = (invoice.seller?.taxId ?? '').replace(/\s/g, '');
         if (sellerTax && !profile.taxIdPattern.test(sellerTax)) {
@@ -84,16 +82,16 @@ export function createDetectFraudTool(model: ChatGoogleGenerativeAI, rawBase64: 
         }
       }
 
-      // [Gian lận 6] Cross-check amountInWords — chỉ với quốc gia có trường này
+      // Case 6: Cross-check amountInWords — chỉ với quốc gia có trường này
       if (invoice.amountInWords && invoice.totalDue) {
         const crossCheckPrompt = `
-                                Hóa đơn ${profile.name}.
-                                Số tiền bằng chữ: "${invoice.amountInWords}"
-                                Số tiền bằng số: ${invoice.totalDue} ${profile.currency}
+                                Invoice country: ${profile.name}.
+                                Amount in words: "${invoice.amountInWords}"
+                                Numeric amount: ${invoice.totalDue} ${profile.currency}
 
-                                Hai giá trị này có khớp nhau không?
-                                Trả về JSON: { "match": true/false, "parsedFromWords": <number_or_null> }
-                                Chỉ JSON.`;
+                                Do these two values match?
+                                Return JSON: { "match": true/false, "parsedFromWords": <number_or_null> }
+                                JSON only.`;
         try {
           const crossCheck = await model.invoke([{ role: 'user', content: crossCheckPrompt }]);
           const result = JSON.parse(extractTextContent(crossCheck.content));
@@ -107,7 +105,7 @@ export function createDetectFraudTool(model: ChatGoogleGenerativeAI, rawBase64: 
         }
       }
 
-      // [Gian lận 7] Gemini Vision phát hiện chỉnh sửa ảnh
+      // Case 7: Gemini Vision phát hiện chỉnh sửa ảnh
       try {
         const visionRes = await model.invoke([
           {
@@ -116,12 +114,12 @@ export function createDetectFraudTool(model: ChatGoogleGenerativeAI, rawBase64: 
               { type: 'image_url', image_url: { url: formattedDataUrl } },
               {
                 type: 'text',
-                text: `Kiểm tra hóa đơn này có dấu hiệu làm giả không? Xem xét:
-                      1. Font chữ không đồng nhất (số bị thay thế)
-                      2. Vùng trắng bất thường hoặc pixel artifact
-                      3. Con số lệch hàng so với các dòng khác
-                      4. Dấu mộc/chữ ký có vẻ copy-paste
-                      Trả về JSON: { "manipulationDetected": true/false, "suspiciousAreas": [], "confidence": 0-100 }`,
+                text: `Check whether this invoice shows signs of forgery or image manipulation. Consider:
+                      1. Inconsistent fonts, especially replaced numbers
+                      2. Unusual blank areas or pixel artifacts
+                      3. Numbers misaligned compared with other rows
+                      4. Stamps or signatures that appear copy-pasted
+                      Return JSON: { "manipulationDetected": true/false, "suspiciousAreas": [], "confidence": 0-100 }`,
               },
             ],
           },
@@ -132,24 +130,7 @@ export function createDetectFraudTool(model: ChatGoogleGenerativeAI, rawBase64: 
             flags.push(`[Chỉnh sửa ảnh] ${area}`)
           );
         }
-      } catch { /* skip */ }
-
-      console.log('\n\n createDetectFraudTool: \n', {
-        countryCode: profile.code,
-        countryName: profile.name,
-        hasFraud: flags.length > 0,
-        fraudFlags: flags,
-        amountMismatch: !validation.isValid,
-        rulesApplied: {
-          suspiciousRoundThreshold: rules.suspiciousRoundAmount,
-          workingDayCheck: rules.workingDayOnly,
-          unitPriceDriftPct: rules.maxItemUnitPriceDriftPct,
-          taxIdValidation: !!profile.taxIdPattern,
-          amountInWordsCheck: !!(invoice.amountInWords),
-          visionManipulationCheck: true,
-        },
-      });
-
+      } catch { /* skip nếu parse lỗi - có thể ghi log vào DB để tracking */  }
 
       return JSON.stringify({
         countryCode: profile.code,

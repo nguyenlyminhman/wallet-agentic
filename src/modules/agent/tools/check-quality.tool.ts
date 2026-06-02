@@ -1,9 +1,8 @@
-// tools/check-quality.tool.ts
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 
-/** Gemini trả về content dạng string hoặc MessageContentComplex[] — normalize về string */
+/** Gemini thường trả content về dạng string hoặc MessageContentComplex[] — normalize về string để xử lý cho dễ */
 function extractTextContent(content: unknown): string {
   if (typeof content === 'string') return content;
   if (Array.isArray(content)) {
@@ -18,7 +17,7 @@ function extractTextContent(content: unknown): string {
 export function createCheckQualityTool(model: ChatGoogleGenerativeAI, rawBase64: string) {
   return new DynamicStructuredTool({
     name: 'checkImageQuality',
-    description: 'Phân tích chất lượng hình ảnh hóa đơn. Phát hiện các vấn đề: mờ (blurry), nhàu nát (crumpled), rách (torn).',
+    description: 'Analyze invoice image quality. Detect issues such as blurry, crumpled, and torn or missing areas.',
     schema: z.object({}),
     func: async () => {
       const cleanBase64 = rawBase64.replace(/\s+/g, '').replace(/^data:image\/\w+;base64,/, '');
@@ -36,21 +35,21 @@ export function createCheckQualityTool(model: ChatGoogleGenerativeAI, rawBase64:
               },
               {
                 type: 'text',
-                text: `Nhìn vào ảnh hóa đơn này và đánh giá chất lượng hình ảnh.
+                text: `Look at this invoice image and evaluate the image quality.
 
-Trả về JSON với các trường sau:
-- "qualities": mảng chứa CÁC VẤN ĐỀ THỰC SỰ BẠN THẤY trong ảnh. Chọn từ: "CLEAR" (rõ nét), "BLURRY" (mờ), "CRUMPLED" (nhàu nát), "TORN" (rách/thiếu góc). Nếu ảnh rõ nét không có vấn đề thì chỉ ghi ["CLEAR"].
-- "confidence": số từ 0 đến 100, mức độ chắc chắn của bạn
-- "details": mô tả ngắn vấn đề cụ thể nếu có, hoặc "Ảnh rõ nét" nếu không có vấn đề
-- "readability": "HIGH" nếu đọc toàn bộ text dễ dàng, "MEDIUM" nếu đọc được phần lớn, "LOW" nếu khó đọc
+                      Return JSON with the following fields:
+                      - "qualities": an array containing the ACTUAL ISSUES YOU SEE in the image. Choose from: "CLEAR" (sharp/readable), "BLURRY", "CRUMPLED", "TORN" (torn/missing corner). If the image is clear and has no issue, return only ["CLEAR"].
+                      - "confidence": a number from 0 to 100 indicating your certainty
+                      - "details": a short description of the specific issue if any, or "Image is clear" if there is no issue
+                      - "readability": "HIGH" if all text is easy to read, "MEDIUM" if most text is readable, "LOW" if it is difficult to read
 
-Ví dụ output khi ảnh bị mờ nhẹ:
-{"qualities":["BLURRY"],"confidence":80,"details":"Ảnh hơi mờ ở góc phải","readability":"MEDIUM"}
+                      Example output when the image is slightly blurry:
+                      {"qualities":["BLURRY"],"confidence":80,"details":"The image is slightly blurry in the right corner","readability":"MEDIUM"}
 
-Ví dụ output khi ảnh rõ nét:
-{"qualities":["CLEAR"],"confidence":95,"details":"Ảnh rõ nét","readability":"HIGH"}
+                      Example output when the image is clear:
+                      {"qualities":["CLEAR"],"confidence":95,"details":"Image is clear","readability":"HIGH"}
 
-Chỉ trả về JSON thuần, không có markdown, không có giải thích.`,
+                      Return only raw JSON, with no markdown and no explanation.`,
               },
             ],
           },

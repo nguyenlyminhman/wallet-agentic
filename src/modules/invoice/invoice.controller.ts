@@ -21,12 +21,10 @@ export class InvoiceController {
 
         let tada: InvoiceResultDto;
         try {
-            console.log('file path: ', file.path)
             tada = await this.invoiceService.processUploadedInvoice(file);
 
         } catch (error: any) {
-            console.log(error.message)
-            throw new BadRequestException('Invalid JSON file');
+            throw new BadRequestException('Invalid file type');
         }
 
         return { result: tada, msg: 'Success', 'status': HttpStatus.OK };

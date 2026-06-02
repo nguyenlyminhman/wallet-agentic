@@ -10,7 +10,7 @@ export class InvoiceService {
   constructor(private readonly invoiceAgent: InvoiceAgent) {}
 
   async processUploadedInvoice(file: Express.Multer.File): Promise<InvoiceResultDto> {
-    // Convert PDF page 1 → JPEG base64
+    // Convert PDF page 1 → JPEG base64, nếu là file ảnh thì khỏi convert
     const imageBase64 = await this.fileToBase64(file);
 
     // Chạy agent loop
@@ -23,7 +23,7 @@ export class InvoiceService {
   }
 
   private async fileToBase64(file: Express.Multer.File): Promise<string> {
-  // diskStorage → đọc từ file.path thay vì file.buffer
+  
   const filePath = file.path;
 
   if (!filePath || !fs.existsSync(filePath)) {
@@ -52,28 +52,6 @@ export class InvoiceService {
 
   return optimized.toString('base64');
 }
-
-// private async convertPdfToImage(pdfPath: string): Promise<Buffer> {
-//   const tmpDir = os.tmpdir();
-//   const tmpImg = path.join(tmpDir, `inv_${Date.now()}`);
-
-//   const converter = pdf2pic.fromPath(pdfPath, { // ← dùng thẳng path, không cần ghi lại
-//     density: 200,
-//     saveFilename: path.basename(tmpImg),
-//     savePath: tmpDir,
-//     format: 'jpeg',
-//     width: 2480,
-//     height: 3508,
-//   });
-
-//   const result = await converter(1, { responseType: 'buffer' });
-
-//   if (!result?.buffer || result.buffer.length === 0) {
-//     throw new Error('pdf2pic trả về buffer rỗng — kiểm tra ghostscript đã cài chưa');
-//   }
-
-//   return result.buffer;
-// }
 
   private async saveToDatabase(result: InvoiceResultDto): Promise<void> {
     // insert vào table: invoices
