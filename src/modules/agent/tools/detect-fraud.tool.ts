@@ -132,6 +132,22 @@ export function createDetectFraudTool(model: ChatGoogleGenerativeAI, rawBase64: 
         }
       } catch { /* skip nếu parse lỗi - có thể ghi log vào DB để tracking */  }
 
+      console.info('\n\ncreateDetectFraudTool', {
+        countryCode: profile.code,
+        countryName: profile.name,
+        hasFraud: flags.length > 0,
+        fraudFlags: flags,
+        amountMismatch: !validation.isValid,
+        rulesApplied: {
+          suspiciousRoundThreshold: rules.suspiciousRoundAmount,
+          workingDayCheck: rules.workingDayOnly,
+          unitPriceDriftPct: rules.maxItemUnitPriceDriftPct,
+          taxIdValidation: !!profile.taxIdPattern,
+          amountInWordsCheck: !!(invoice.amountInWords),
+          visionManipulationCheck: true,
+        },
+      })
+
       return JSON.stringify({
         countryCode: profile.code,
         countryName: profile.name,

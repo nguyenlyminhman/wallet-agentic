@@ -73,6 +73,8 @@ export function createValidateAmountsTool() {
         );
       }
 
+      console.info('\n\ncreateValidateAmountsTool ', {...results})
+
       return JSON.stringify(results);
     },
   });

@@ -26,27 +26,12 @@ export function createExtractInvoiceTool(model: ChatGoogleGenerativeAI, rawBase6
   return new DynamicStructuredTool({
     name: 'extractInvoice',
     description: 'Automatically detect the invoice country and extract all invoice information according to that country-specific format.',
-    // Schema đơn giản lại, chỉ cần nhận vào độ rõ nét (readability) thu được từ bước check quality
-    schema: z.object({
-      readability: z.string().default('HIGH'),
-    }),
-    func: async ({ readability: readabilityRaw }) => {
-      // Agent có thể truyền vào JSON string nguyên từ checkImageQuality output — parse defensive
-      let readability: 'HIGH' | 'MEDIUM' | 'LOW' = 'HIGH';
-      try {
-        if (readabilityRaw.startsWith('{')) {
-          const parsed = JSON.parse(readabilityRaw);
-          readability = parsed.readability ?? 'HIGH';
-        } else if (['HIGH', 'MEDIUM', 'LOW'].includes(readabilityRaw.toUpperCase())) {
-          readability = readabilityRaw.toUpperCase() as 'HIGH' | 'MEDIUM' | 'LOW';
-        }
-      } catch { /* fallback to HIGH */ }
+    schema: z.object({}),
+    func: async () => {
       const cleanBase64 = rawBase64.replace(/\s+/g, '').replace(/^data:image\/\w+;base64,/, '');
       const formattedDataUrl = `data:image/jpeg;base64,${cleanBase64}`;
 
-      const qualityHint = readability === 'LOW'
-        ? 'The image quality is low — try to read the clearest regions and mark uncertain fields with "?".'
-        : '';
+      const qualityHint = 'If the image quality is low or blurry, try to read the clearest regions and mark uncertain fields with "?".';
 
       // Prompt hai giai đoạn trong cùng 1 lần gọi (Single-shot Chain of Thought):
       // Bước 1: Bắt LLM nhìn ảnh chọn quốc gia.
@@ -152,6 +137,8 @@ export function createExtractInvoiceTool(model: ChatGoogleGenerativeAI, rawBase6
       extracted._countryName = profile.name;
       extracted._currency = profile.currency;
       extracted._roundingUnit = profile.roundingUnit;
+
+      console.info( '\n\ncreateExtractInvoiceTool', {...extracted})
 
       return JSON.stringify(extracted);
     },

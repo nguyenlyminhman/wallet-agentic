@@ -22,12 +22,22 @@ export class InvoiceAgent {
     });
   }
 
+  private createToolModel(): ChatGoogleGenerativeAI {
+    // Mỗi tool sẽ cần model instance riêng — Gemini không cho phép 1 instance gọi đồng thời bởi agent loop và tool execution (trả về content: [])
+    return new ChatGoogleGenerativeAI({
+      model: 'gemini-3.5-flash',  // Flash cho tools: nhanh hơn, ít bị conflict hơn Pro
+      apiKey: process.env.GOOGLE_GENAI_API_KEY,
+      temperature: 0,
+      maxOutputTokens: 8192,
+    });
+  }
+
   async processInvoice(imageBase64: string): Promise<InvoiceResultDto> {
     const tools = [
-      createCheckQualityTool(this.model, imageBase64),
-      createExtractInvoiceTool(this.model, imageBase64),
+      createCheckQualityTool(this.createToolModel(), imageBase64),
+      createExtractInvoiceTool(this.createToolModel(), imageBase64),
       createValidateAmountsTool(),
-      createDetectFraudTool(this.model, imageBase64),
+      createDetectFraudTool(this.createToolModel(), imageBase64),
       createSendNotificationTool(this.notificationService),
     ];
 
@@ -38,17 +48,17 @@ export class InvoiceAgent {
                         You have access to tools to analyze invoice images.
 
                         Your goal: determine if the invoice is valid, has amount mismatches, or suspected fraud.
-                        Use the available tools as needed to reach a confident conclusion.
 
-                        Rules:
-                        - Always check image quality BEFORE attempting extraction
-                        - If image quality is LOW, send a LOW_QUALITY notification immediately and still attempt extraction
-                        - Only validate amounts if extraction succeeded
-                        - Collect ALL issues first (run validateAmounts AND detectFraud in parallel if possible), then send notifications at the end
-                        - Send a separate notification for every issue found (AMOUNT_MISMATCH, SUSPECTED_FRAUD, LOW_QUALITY)
+                        You MUST call ALL of these tools before finishing — do NOT output JSON until every step below is complete:
 
-                        MANDATORY FINAL STEP:
-                        After all tools have been called and all notifications sent, you MUST output ONLY a raw JSON object (no markdown, no explanation) with this exact structure:
+                        STEP 1: Call checkImageQuality
+                        STEP 2: Call extractInvoice (regardless of quality result)
+                        STEP 3: If extraction succeeded, call validateAmounts AND detectFraud (you may call these in parallel)
+                        STEP 4: Call sendNotification for EVERY issue found:
+                          - LOW_QUALITY if image readability is LOW or MEDIUM
+                          - AMOUNT_MISMATCH if validateAmounts returned isValid=false
+                          - SUSPECTED_FRAUD if detectFraud returned hasFraud=true
+                        STEP 5 (FINAL): Only after ALL tools above have returned results, output ONLY a raw JSON object with no markdown fences, no explanation, no extra text — just the JSON:
                         {
                           "invoiceNo": "",
                           "invoiceDate": "",
@@ -60,33 +70,23 @@ export class InvoiceAgent {
                           "vat": 0,
                           "totalDue": 0,
                           "status": "VALID" | "AMOUNT_MISMATCH" | "SUSPECTED_FRAUD",
-                          "imageQuality": [],
+                          "imageQuality": { "qualities": [], "confidence": 0, "details": "", "readability": "" },
                           "fraudFlags": [],
                           "_countryCode": "",
                           "_countryName": "",
                           "_currency": ""
                         }
-                        Populate all fields from the tool results. Output ONLY this JSON — no other text.`,
+
+                        IMPORTANT: Do NOT output the JSON after STEP 1 or STEP 2. You must wait until ALL steps are done.`,
     });
 
-    const cleanBase64 = imageBase64.replace(/\s+/g, '').replace(/^data:image\/\w+;base64,/, '');
+    // Không pass image vào đây — mỗi tool tự nhận image qua closure
+    // Pass image trong HumanMessage khiến Gemini confused (duplicate context) → response.content = []
     const result = await agent.invoke({
       messages: [
-        new HumanMessage({
-          content: [
-            {
-              type: 'text',
-              text: `Analyze this invoice and determine its status. 
-                    Image is available to all tools via their context.`,
-            },
-            {
-              type: 'image_url',
-              image_url: {
-                url: `data:image/jpeg;base64,${cleanBase64}`,
-              },
-            },
-          ],
-        }),
+        new HumanMessage(
+          'Analyze this invoice image and determine its status. Follow the steps in order: checkImageQuality → extractInvoice → validateAmounts → detectFraud → sendNotification (if needed). Then output the final JSON.'
+        ),
       ],
     });
 
@@ -98,7 +98,9 @@ export class InvoiceAgent {
       .join('\n---\n');
 
     try {
-      const finalJson = JSON.parse(lastMessage.content as string);
+      const raw = lastMessage.content as string;
+      const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+      const finalJson = JSON.parse(cleaned);
       return { ...finalJson, agentReasoning };
     } catch {
       // Nếu agent không trả về JSON thuần, parse từ tool calls
@@ -106,8 +108,13 @@ export class InvoiceAgent {
     }
   }
 
+  // Strip markdown code fences nếu tool trả về ```json ... ```
+  private parseToolContent(content: string): any {
+    const cleaned = content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+    return JSON.parse(cleaned);
+  }
+
   private buildResultFromMessages(messages: any[], agentReasoning: string): InvoiceResultDto {
-    // Collect tool results từ intermediate steps
     let invoiceData: any = {};
     let validation: any = { isValid: true, errors: [] };
     let fraud: any = { hasFraud: false, fraudFlags: [] };
@@ -115,29 +122,46 @@ export class InvoiceAgent {
       qualities: [ImageQuality.CLEAR],
       confidence: 0,
       details: '',
-      readability: 'LOW', // set default - có gì cho user xử lý
+      readability: 'LOW',
     };
 
     for (const msg of messages) {
-      if (msg.name === 'checkImageQuality') {
-        try {
-          const parsed = JSON.parse(msg.content);
-          quality = {
-            qualities: (parsed.qualities ?? []).map((q: string) => q as ImageQuality),
-            confidence: parsed.confidence ?? 0,
-            details: parsed.details ?? '',
-            readability: parsed.readability ?? 'LOW',
-          };
-        } catch { }
-      }
-      if (msg.name === 'extractInvoice') {
-        try { invoiceData = JSON.parse(msg.content); } catch { }
-      }
-      if (msg.name === 'validateAmounts') {
-        try { validation = JSON.parse(msg.content); } catch { }
-      }
-      if (msg.name === 'detectFraud') {
-        try { fraud = JSON.parse(msg.content); } catch { }
+      // Chỉ xử lý ToolMessage — LangGraph dùng _getType() === 'tool'
+      const msgType = msg._getType?.();
+      console.log('msgType', msgType);
+      if (msgType !== 'tool') continue;
+
+      const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+
+      switch (msg.name) {
+        case 'checkImageQuality':
+          try {
+            const parsed = this.parseToolContent(content);
+            quality = {
+              qualities: (parsed.qualities ?? []).map((q: string) => q as ImageQuality),
+              confidence: parsed.confidence ?? 0,
+              details: parsed.details ?? '',
+              readability: parsed.readability ?? 'LOW',
+            };
+          } catch (e) {
+            console.warn('Failed to parse checkImageQuality result:', e);
+          }
+          break;
+        case 'extractInvoice':
+          try { invoiceData = this.parseToolContent(content); } catch (e) {
+            console.warn('Failed to parse extractInvoice result:', e);
+          }
+          break;
+        case 'validateAmounts':
+          try { validation = this.parseToolContent(content); } catch (e) {
+            console.warn('Failed to parse validateAmounts result:', e);
+          }
+          break;
+        case 'detectFraud':
+          try { fraud = this.parseToolContent(content); } catch (e) {
+            console.warn('Failed to parse detectFraud result:', e);
+          }
+          break;
       }
     }
 
@@ -153,7 +177,7 @@ export class InvoiceAgent {
       status,
       fraudFlags: fraud.fraudFlags || [],
     };
-
+    console.info('\n\n buildResultFromMessages', { ...result })
     return result;
   }
 }

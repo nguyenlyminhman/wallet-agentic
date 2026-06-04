@@ -15,13 +15,17 @@ function extractTextContent(content: unknown): string {
 }
 
 export function createCheckQualityTool(model: ChatGoogleGenerativeAI, rawBase64: string) {
+
+
+
   return new DynamicStructuredTool({
     name: 'checkImageQuality',
     description: 'Analyze invoice image quality. Detect issues such as blurry, crumpled, and torn or missing areas.',
     schema: z.object({}),
     func: async () => {
       const cleanBase64 = rawBase64.replace(/\s+/g, '').replace(/^data:image\/\w+;base64,/, '');
-
+  
+  
       try {
         const response = await model.invoke([
           {
@@ -55,7 +59,7 @@ export function createCheckQualityTool(model: ChatGoogleGenerativeAI, rawBase64:
           },
         ]);
 
-        console.log(`createCheckQualityTool response.content:`, response.content);
+        console.info(`createCheckQualityTool response.content:`, response.content);
         
         const rawText = extractTextContent(response.content);
         const cleanContent = rawText
@@ -63,17 +67,17 @@ export function createCheckQualityTool(model: ChatGoogleGenerativeAI, rawBase64:
           .replace(/```/g, '')
           .trim();
 
-        console.log(`\n\n createCheckQualityTool output:`, cleanContent);
+        console.info(`\n\n createCheckQualityTool output:`, cleanContent);
         return cleanContent;
 
       } catch (error) {
         console.error('Error in createCheckQualityTool:', error);
         // Trả về fallback thay vì throw để agent không bị crash loop
         return JSON.stringify({
-          qualities: ['CLEAR'],
+          qualities: ['BLURRY'],
           confidence: 50,
           details: 'Could not analyze image quality',
-          readability: 'HIGH',
+          readability: 'LOW',
         });
       }
     },
